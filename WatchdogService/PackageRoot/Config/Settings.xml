@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.microsoft.com/2011/01/fabric">
+  <Section Name="Watchdog">
+    <Parameter Name="AIKey" Value="-- Insert Application Insights Key Here --" />
+    <Parameter Name="WatchdogHealthReportInterval" Value="00:30:00" />
+    <Parameter Name="HealthCheckInterval" Value="00:01:00" />
+    <Parameter Name="MetricInterval" Value="00:01:00" />
+    <Parameter Name="DiagnosticEndpoint" Value="-- Insert Storage Account URL Here --" />
+    <Parameter Name="DiagnosticSasToken" Value="-- Insert SAS Token Here --" />
+    <Parameter Name="DiagnosticInterval" Value="00:02:00" />
+    <Parameter Name="DiagnosticTimeToKeep" Value="7.00:00:00" />
+    <Parameter Name="DiagnosticTargetCount" Value="10000" />
+  </Section>
+</Settings>
