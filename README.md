@@ -6,7 +6,7 @@ author: toddabel
 
 # Azure Service Fabric watchdog sample
 Azure Service Fabric Watchdog service sample
-Discusses the Azure Service Fabric watchdog service sample, how to use it within your cluster and with your services.
+Discusses the Azure Service Fabric watchdog service sample, how to use it within your cluster and with your services. This sample was uses features of C# 7.0 and requires Visual Studio 2017.
 
 As mentioned in [Monitor and diagnose Azure Service Fabric applications](https://docs.microsoft.com/azure/service-fabric/service-fabric-diagnostics-overview) a watchdog can be part of the monitoring strategy of your application. With Service Fabric a watchdog is nothing more than an auxiliary service that is watching the primary service. It can observe health and load metrics reports the primary service is emitting or make calls to the primary service and ensure it is receiving correct responses. Watchdogs can watch multiple services and detect trends that are occurring across the services. Because of these tight dependencies the watchdogs must be aware of versioning across the services they are observing. Care must be taken when deploying if a v1 watchdog, won't work with a v2 service or the reverse, a v2 watchdog and v1 service.
 
