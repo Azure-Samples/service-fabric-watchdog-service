@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{A07B5EB6-E848-4116-A8D0-A826331D98C6}") = "Watchdog", "Watchdog\Watchdog.sfproj", "{74EE66AD-1BED-4DE8-9BAB-0C0C2C56EF3E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WatchdogService", "WatchdogService\WatchdogService.csproj", "{A65C3984-614F-45BB-BFB2-ACF1785F5AA8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sample JSON", "Sample JSON", "{BAA152FE-B25E-4F9B-8F5C-BD52DC80168F}"
+	ProjectSection(SolutionItems) = preProject
+		HealthCheck.json = HealthCheck.json
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WatchdogServiceTests", "WatchdogServiceTests\WatchdogServiceTests.csproj", "{620D625F-E75B-4D0C-8426-1638FA4E5665}"
+EndProject
+Project("{A07B5EB6-E848-4116-A8D0-A826331D98C6}") = "TestStatelessApp", "TestStatelessApp\TestStatelessApp.sfproj", "{16A4B207-7A8A-440E-BC29-B4E64646A9A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestStatelessService", "TestStatelessService\TestStatelessService.csproj", "{A26A33D0-D5F4-43DD-BE7A-C5CAA3164696}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{74EE66AD-1BED-4DE8-9BAB-0C0C2C56EF3E}.Debug|x64.ActiveCfg = Debug|x64
+		{74EE66AD-1BED-4DE8-9BAB-0C0C2C56EF3E}.Debug|x64.Build.0 = Debug|x64
+		{74EE66AD-1BED-4DE8-9BAB-0C0C2C56EF3E}.Debug|x64.Deploy.0 = Debug|x64
+		{74EE66AD-1BED-4DE8-9BAB-0C0C2C56EF3E}.Release|x64.ActiveCfg = Release|x64
+		{74EE66AD-1BED-4DE8-9BAB-0C0C2C56EF3E}.Release|x64.Build.0 = Release|x64
+		{74EE66AD-1BED-4DE8-9BAB-0C0C2C56EF3E}.Release|x64.Deploy.0 = Release|x64
+		{A65C3984-614F-45BB-BFB2-ACF1785F5AA8}.Debug|x64.ActiveCfg = Debug|x64
+		{A65C3984-614F-45BB-BFB2-ACF1785F5AA8}.Debug|x64.Build.0 = Debug|x64
+		{A65C3984-614F-45BB-BFB2-ACF1785F5AA8}.Release|x64.ActiveCfg = Release|x64
+		{A65C3984-614F-45BB-BFB2-ACF1785F5AA8}.Release|x64.Build.0 = Release|x64
+		{620D625F-E75B-4D0C-8426-1638FA4E5665}.Debug|x64.ActiveCfg = Debug|x64
+		{620D625F-E75B-4D0C-8426-1638FA4E5665}.Debug|x64.Build.0 = Debug|x64
+		{620D625F-E75B-4D0C-8426-1638FA4E5665}.Release|x64.ActiveCfg = Release|x64
+		{620D625F-E75B-4D0C-8426-1638FA4E5665}.Release|x64.Build.0 = Release|x64
+		{16A4B207-7A8A-440E-BC29-B4E64646A9A5}.Debug|x64.ActiveCfg = Debug|x64
+		{16A4B207-7A8A-440E-BC29-B4E64646A9A5}.Debug|x64.Build.0 = Debug|x64
+		{16A4B207-7A8A-440E-BC29-B4E64646A9A5}.Debug|x64.Deploy.0 = Debug|x64
+		{16A4B207-7A8A-440E-BC29-B4E64646A9A5}.Release|x64.ActiveCfg = Release|x64
+		{16A4B207-7A8A-440E-BC29-B4E64646A9A5}.Release|x64.Build.0 = Release|x64
+		{16A4B207-7A8A-440E-BC29-B4E64646A9A5}.Release|x64.Deploy.0 = Release|x64
+		{A26A33D0-D5F4-43DD-BE7A-C5CAA3164696}.Debug|x64.ActiveCfg = Debug|x64
+		{A26A33D0-D5F4-43DD-BE7A-C5CAA3164696}.Debug|x64.Build.0 = Debug|x64
+		{A26A33D0-D5F4-43DD-BE7A-C5CAA3164696}.Release|x64.ActiveCfg = Release|x64
+		{A26A33D0-D5F4-43DD-BE7A-C5CAA3164696}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

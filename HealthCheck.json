@@ -1,0 +1,13 @@
+{
+  "name": "UniqueHealthCheckName",
+  "serviceName": "fabric:/TestStatelessApp/TestStatelessService",
+  "partition": "e8025497-5eb6-4e90-9c52-50b0221bd4b2",
+  "frequency": "00:02:00",
+  "suffixPath": "api/values",
+  "method": {
+    "Method": "GET"
+  },
+  "mediaType": "application/json",
+  "expectedDuration": "00:00:00.2000000",
+  "maximumDuration": "00:00:05"
+}
