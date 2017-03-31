@@ -53,22 +53,28 @@ namespace TestStatelessService
             string jsonTemplate = "{{\"name\":\"UniqueHealthCheckName\",\"serviceName\": \"{0}\",\"partition\": \"{1}\",\"frequency\": \"{2}\",\"suffixPath\": \"api/values\",\"method\": {{ \"Method\": \"GET\" }}, \"expectedDuration\": \"00:00:00.2000000\",\"maximumDuration\": \"00:00:05\" }}";
             string json = string.Format(jsonTemplate, Context.ServiceName, Context.PartitionId, TimeSpan.FromMinutes(2));
 
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:19081/Watchdog/WatchdogService/healthcheck");
-            request.Content = new StringContent(json, Encoding.Default, "application/json");
-
-            var msg = await client.SendAsync(request);
-
-            // Log a success or error message based on the returned status code.
-            if (HttpStatusCode.OK == msg.StatusCode)
+            // Called from RunAsync, don't let an exception out so the service will start, but log the exception because the service won't work.
+            try
             {
-                ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
-                result = true;
+
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:19081/Watchdog/WatchdogService/healthcheck");
+                request.Content = new StringContent(json, Encoding.Default, "application/json");
+
+                var msg = await client.SendAsync(request);
+
+                // Log a success or error message based on the returned status code.
+                if (HttpStatusCode.OK == msg.StatusCode)
+                {
+                    ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                    result = true;
+                }
+                else
+                {
+                    ServiceEventSource.Current.Error(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                    ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), json ?? "<null JSON>");
+                }
             }
-            else
-            {
-                ServiceEventSource.Current.Error(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
-                ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), json ?? "<null JSON>");
-            }
+            catch(Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
 
             return result;
         }
