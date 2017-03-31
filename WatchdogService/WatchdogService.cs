@@ -163,21 +163,26 @@ namespace Microsoft.ServiceFabric.WatchdogService
         internal async Task RegisterHealthCheckAsync(CancellationToken token)
         {
             HttpClient client = new HttpClient();
-            
-            // Use the reverse proxy to locate the service endpoint.
-            string postUrl = "http://localhost:19081/Watchdog/WatchdogService/healthcheck";
-            HealthCheck hc = new HealthCheck("Watchdog Health Check", Context.ServiceName, Context.PartitionId, "watchdog/health");
-            var msg = await client.PostAsJsonAsync(postUrl, hc);
 
-            // Log a success or error message based on the returned status code.
-            if (HttpStatusCode.OK == msg.StatusCode)
+            // Called from RunAsync, don't let an exception out so the service will start, but log the exception because the service won't work.
+            try
             {
-                ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                // Use the reverse proxy to locate the service endpoint.
+                string postUrl = "http://localhost:19081/Watchdog/WatchdogService/healthcheck";
+                HealthCheck hc = new HealthCheck("Watchdog Health Check", Context.ServiceName, Context.PartitionId, "watchdog/health");
+                var msg = await client.PostAsJsonAsync(postUrl, hc);
+
+                // Log a success or error message based on the returned status code.
+                if (HttpStatusCode.OK == msg.StatusCode)
+                {
+                    ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                }
+                else
+                {
+                    ServiceEventSource.Current.Error(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                }
             }
-            else
-            {
-                ServiceEventSource.Current.Error(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
-            }
+            catch (Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
         }
 
         /// <summary>
@@ -203,38 +208,43 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         private void ReportWatchdogHealth()
         {
-            // Collect the health information from the local service state.
-            TimeSpan interval = HealthReportInterval.Add(TimeSpan.FromSeconds(30));
-            StringBuilder sb = new StringBuilder();
-            HealthState hs = CheckWatchdogHealth(sb);
-
-            // Issue a health report for the watchdog service.
-            HealthInformation hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "WatchdogServiceHealth", hs)
+            // Called from RunAsync, don't let an exception out so the service will start, but log the exception because the service won't work.
+            try
             {
-                TimeToLive = interval,
-                Description = sb.ToString(),
-                RemoveWhenExpired = false,
-                SequenceNumber = HealthInformation.AutoSequenceNumber,
-            };
-            Partition.ReportPartitionHealth(hi);
+                // Collect the health information from the local service state.
+                TimeSpan interval = HealthReportInterval.Add(TimeSpan.FromSeconds(30));
+                StringBuilder sb = new StringBuilder();
+                HealthState hs = CheckWatchdogHealth(sb);
 
-            hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "HealthCheckOperations", _healthCheckOperations.Health);
-            hi.TimeToLive = interval;
-            hi.RemoveWhenExpired = false;
-            hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
-            Partition.ReportPartitionHealth(hi);
+                // Issue a health report for the watchdog service.
+                HealthInformation hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "WatchdogServiceHealth", hs)
+                {
+                    TimeToLive = interval,
+                    Description = sb.ToString(),
+                    RemoveWhenExpired = false,
+                    SequenceNumber = HealthInformation.AutoSequenceNumber,
+                };
+                Partition.ReportPartitionHealth(hi);
 
-            hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "MetricOperations", _metricsOperations.Health);
-            hi.TimeToLive = interval;
-            hi.RemoveWhenExpired = false;
-            hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
-            Partition.ReportPartitionHealth(hi);
+                hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "HealthCheckOperations", _healthCheckOperations.Health);
+                hi.TimeToLive = interval;
+                hi.RemoveWhenExpired = false;
+                hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
+                Partition.ReportPartitionHealth(hi);
 
-            hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "CleanupOperations", _cleanupOperations.Health);
-            hi.TimeToLive = interval;
-            hi.RemoveWhenExpired = false;
-            hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
-            Partition.ReportPartitionHealth(hi);
+                hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "MetricOperations", _metricsOperations.Health);
+                hi.TimeToLive = interval;
+                hi.RemoveWhenExpired = false;
+                hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
+                Partition.ReportPartitionHealth(hi);
+
+                hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "CleanupOperations", _cleanupOperations.Health);
+                hi.TimeToLive = interval;
+                hi.RemoveWhenExpired = false;
+                hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
+                Partition.ReportPartitionHealth(hi);
+            }
+            catch (Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
         }
 
         /// <summary>
@@ -247,17 +257,21 @@ namespace Microsoft.ServiceFabric.WatchdogService
             int omc = _metricsOperations?.MetricCount ?? -1;
             int hcc = _healthCheckOperations?.HealthCheckCount ?? -1;
 
-            // Load the list of current metric values to report.
-            List<LoadMetric> metrics = new List<LoadMetric>();
-            metrics.Add(new LoadMetric(ObservedMetricCountMetricName, omc));
-            metrics.Add(new LoadMetric(HealthCheckCountMetricName, hcc));
+            try
+            {
+                // Load the list of current metric values to report.
+                List<LoadMetric> metrics = new List<LoadMetric>();
+                metrics.Add(new LoadMetric(ObservedMetricCountMetricName, omc));
+                metrics.Add(new LoadMetric(HealthCheckCountMetricName, hcc));
 
-            // Report the metrics to Service Fabric.
-            Partition.ReportLoad(metrics);
+                // Report the metrics to Service Fabric.
+                Partition.ReportLoad(metrics);
 
-            // Report them to the telemetry provider also.
-            await _telemetry.ReportMetricAsync(ObservedMetricCountMetricName, omc, token);
-            await _telemetry.ReportMetricAsync(HealthCheckCountMetricName, hcc, token);
+                // Report them to the telemetry provider also.
+                await _telemetry.ReportMetricAsync(ObservedMetricCountMetricName, omc, token);
+                await _telemetry.ReportMetricAsync(HealthCheckCountMetricName, hcc, token);
+            }
+            catch (Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
         }
 
         /// <summary>
@@ -267,47 +281,52 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <returns></returns>
         private async Task ReportClusterHealthAsync(CancellationToken cancellationToken)
         {
-            ClusterHealth health = await _client.HealthManager.GetClusterHealthAsync(TimeSpan.FromSeconds(4), cancellationToken);
-            if (null != health)
+            // Called from RunAsync, don't let an exception out so the service will start, but log the exception because the service won't work.
+            try
             {
-                // Report the aggregated cluster health.
-                await _telemetry.ReportHealthAsync(Context.ServiceName.AbsoluteUri, 
-                                                   Context.PartitionId.ToString(),
-                                                   Context.ReplicaOrInstanceId.ToString(),
-                                                   "Cluster", "Aggregated Cluster Health", 
-                                                   health.AggregatedHealthState, 
-                                                   cancellationToken);
-
-                // Get the state of each of the applications running within the cluster. Report anything that is unhealthy.
-                foreach(var appHealth in health.ApplicationHealthStates)
+                ClusterHealth health = await _client.HealthManager.GetClusterHealthAsync(TimeSpan.FromSeconds(4), cancellationToken);
+                if (null != health)
                 {
-                    if (HealthState.Ok != appHealth.AggregatedHealthState)
+                    // Report the aggregated cluster health.
+                    await _telemetry.ReportHealthAsync(Context.ServiceName.AbsoluteUri,
+                                                       Context.PartitionId.ToString(),
+                                                       Context.ReplicaOrInstanceId.ToString(),
+                                                       "Cluster", "Aggregated Cluster Health",
+                                                       health.AggregatedHealthState,
+                                                       cancellationToken);
+
+                    // Get the state of each of the applications running within the cluster. Report anything that is unhealthy.
+                    foreach (var appHealth in health.ApplicationHealthStates)
                     {
-                        await _telemetry.ReportHealthAsync(appHealth.ApplicationName.AbsoluteUri,
-                                                           Context.ServiceName.AbsoluteUri,
-                                                           Context.PartitionId.ToString(),
-                                                           Context.ReplicaOrInstanceId.ToString(),
-                                                           Context.NodeContext.NodeName,
-                                                           appHealth.AggregatedHealthState,                                                           
-                                                           cancellationToken);
+                        if (HealthState.Ok != appHealth.AggregatedHealthState)
+                        {
+                            await _telemetry.ReportHealthAsync(appHealth.ApplicationName.AbsoluteUri,
+                                                               Context.ServiceName.AbsoluteUri,
+                                                               Context.PartitionId.ToString(),
+                                                               Context.ReplicaOrInstanceId.ToString(),
+                                                               Context.NodeContext.NodeName,
+                                                               appHealth.AggregatedHealthState,
+                                                               cancellationToken);
+                        }
                     }
-                }
 
-                // Get the state of each of the nodes running within the cluster.
-                foreach(var nodeHealth in health.NodeHealthStates)
-                {
-                    if (HealthState.Ok != nodeHealth.AggregatedHealthState)
+                    // Get the state of each of the nodes running within the cluster.
+                    foreach (var nodeHealth in health.NodeHealthStates)
                     {
-                        await _telemetry.ReportHealthAsync(Context.NodeContext.NodeName, 
-                                                           Context.ServiceName.AbsoluteUri,
-                                                           Context.PartitionId.ToString(),
-                                                           Context.NodeContext.NodeType,
-                                                           Context.NodeContext.IPAddressOrFQDN,
-                                                           nodeHealth.AggregatedHealthState, 
-                                                           cancellationToken);
+                        if (HealthState.Ok != nodeHealth.AggregatedHealthState)
+                        {
+                            await _telemetry.ReportHealthAsync(Context.NodeContext.NodeName,
+                                                               Context.ServiceName.AbsoluteUri,
+                                                               Context.PartitionId.ToString(),
+                                                               Context.NodeContext.NodeType,
+                                                               Context.NodeContext.IPAddressOrFQDN,
+                                                               nodeHealth.AggregatedHealthState,
+                                                               cancellationToken);
+                        }
                     }
                 }
             }
+            catch (Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
         }
 
         /// <summary>
