@@ -29,7 +29,7 @@ Application Insights is primarily designed for web site metrics, so there isn't 
 
 Clicking on the search will show a view similar to
 
-![Application Insights Search View](./media/ai-search-view.png)
+![Application Insights Search View](./media/AI-search-view.png)
 
 The graph shows the number of events being generated from the watchdog and the breakdown between the trace events and the availability events. Detailed information about these events is found below where you can see the detail of each trace and availability event. The trace events are showing the health report of the entire cluster. Other traces will appear if applications or nodes are not healthy. Each trace can be opened further to show even more detailed information about the event. The code generating these traces can be found in the ReportClusterHealth method of *WatchdogService.cs*.
 
