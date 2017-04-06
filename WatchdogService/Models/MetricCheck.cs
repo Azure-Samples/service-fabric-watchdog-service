@@ -1,18 +1,17 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="MetricCheck.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using Bond;
-using Bond.IO;
-using Bond.Tag;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Models
 {
+    using System;
+    using System.Collections.Generic;
+    using Bond;
+    using Bond.IO;
+    using Bond.Tag;
+    using Newtonsoft.Json;
+
     /// <summary>
     /// MetricCheck structure definition.
     /// </summary>
@@ -65,16 +64,21 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// <param name="application">Name of the application</param>
         /// <param name="service">Optional name of the service.</param>
         /// <param name="partition">Optional GUID containing the partition identifier.</param>
-        public MetricCheck(string[] metricNames,
-                           string application,
-                           string service = null,
-                           Guid partition = default(Guid))
+        public MetricCheck(
+            string[] metricNames,
+            string application,
+            string service = null,
+            Guid partition = default(Guid))
         {
             // Check required parameters.
             if (null == metricNames)
+            {
                 throw new ArgumentException(nameof(metricNames));
+            }
             if (string.IsNullOrWhiteSpace(application))
+            {
                 throw new ArgumentException(nameof(application));
+            }
 
             this.MetricNames = new SortedSet<string>(metricNames);
             this.Application = application;
@@ -106,16 +110,16 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
             get
             {
                 // If both service and partition have values include them.
-                if ((false == string.IsNullOrWhiteSpace(Service)) && (default(Guid) != Partition))
+                if ((false == string.IsNullOrWhiteSpace(this.Service)) && (default(Guid) != this.Partition))
                 {
-                    return $"{Application}/{Service}/{Partition}";
+                    return $"{this.Application}/{this.Service}/{this.Partition}";
                 }
-                else if (false == string.IsNullOrWhiteSpace(Service))
+                else if (false == string.IsNullOrWhiteSpace(this.Service))
                 {
-                    return $"{Application}/{Service}";
+                    return $"{this.Application}/{this.Service}";
                 }
 
-                return $"{Application}";
+                return $"{this.Application}";
             }
         }
 
@@ -130,20 +134,38 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// <returns>True if they are equal, otherwise false.</returns>
         public bool Equals(MetricCheck other)
         {
-            if (MetricNames?.Count != other.MetricNames?.Count) return false;
-            if (Application != other.Application) return false;
-            if (Service != other.Service) return false;
-            if (Partition != other.Partition) return false;
-
-            if ((null == MetricNames) && (null == other.MetricNames))
-                return true;
-            if ((null == MetricNames) || (null == other.MetricNames))
+            if (this.MetricNames?.Count != other.MetricNames?.Count)
+            {
                 return false;
+            }
+            if (this.Application != other.Application)
+            {
+                return false;
+            }
+            if (this.Service != other.Service)
+            {
+                return false;
+            }
+            if (this.Partition != other.Partition)
+            {
+                return false;
+            }
 
-            foreach (string s in MetricNames)
+            if ((null == this.MetricNames) && (null == other.MetricNames))
+            {
+                return true;
+            }
+            if ((null == this.MetricNames) || (null == other.MetricNames))
+            {
+                return false;
+            }
+
+            foreach (string s in this.MetricNames)
             {
                 if (false == other.MetricNames.Contains(s))
+                {
                     return false;
+                }
             }
 
 
@@ -165,4 +187,4 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
 
         #endregion
     }
- }
+}

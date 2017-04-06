@@ -1,15 +1,20 @@
-﻿using System;
-using System.Diagnostics;
-using System.Fabric;
-using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Owin.Hosting;
-using Microsoft.ServiceFabric.Services.Communication.Runtime;
-using Owin;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace TestStatelessService
 {
+    using System;
+    using System.Fabric;
+    using System.Fabric.Description;
+    using System.Globalization;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Owin.Hosting;
+    using Microsoft.ServiceFabric.Services.Communication.Runtime;
+    using Owin;
+
     internal class OwinCommunicationListener : ICommunicationListener
     {
         private readonly ServiceEventSource eventSource;
@@ -27,7 +32,8 @@ namespace TestStatelessService
         {
         }
 
-        public OwinCommunicationListener(Action<IAppBuilder> startup, ServiceContext serviceContext, ServiceEventSource eventSource, string endpointName, string appRoot)
+        public OwinCommunicationListener(
+            Action<IAppBuilder> startup, ServiceContext serviceContext, ServiceEventSource eventSource, string endpointName, string appRoot)
         {
             if (startup == null)
             {
@@ -60,7 +66,7 @@ namespace TestStatelessService
 
         public Task<string> OpenAsync(CancellationToken cancellationToken)
         {
-            var serviceEndpoint = this.serviceContext.CodePackageActivationContext.GetEndpoint(this.endpointName);
+            EndpointResourceDescription serviceEndpoint = this.serviceContext.CodePackageActivationContext.GetEndpoint(this.endpointName);
             int port = serviceEndpoint.Port;
 
             if (this.serviceContext is StatefulServiceContext)

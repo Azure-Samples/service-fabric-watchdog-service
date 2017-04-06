@@ -1,21 +1,22 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="InitializationCallbackAdapter.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using Microsoft.ServiceFabric.WatchdogService.Models;
-using System;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService
 {
+    using System;
+    using System.Threading.Tasks;
+    using Microsoft.ServiceFabric.Data;
+    using Microsoft.ServiceFabric.WatchdogService.Models;
+
     /// <summary>
     /// Enables configuration of the state manager.
     /// </summary>
     public sealed class InitializationCallbackAdapter
     {
+        public IReliableStateManager StateManager { get; set; }
+
         /// <summary>
         /// Initialized the adapter.
         /// </summary>
@@ -24,12 +25,9 @@ namespace Microsoft.ServiceFabric.WatchdogService
         public Task OnInitialize()
         {
             // Add each of the types to be serialized.
-            StateManager.TryAddStateSerializer(new BondCustomSerializer<HealthCheck>());
-            StateManager.TryAddStateSerializer(new BondCustomSerializer<WatchdogScheduledItem>());
+            this.StateManager.TryAddStateSerializer(new BondCustomSerializer<HealthCheck>());
+            this.StateManager.TryAddStateSerializer(new BondCustomSerializer<WatchdogScheduledItem>());
             return Task.FromResult(true);
         }
-
-        public IReliableStateManager StateManager { get; set; }
     }
 }
-

@@ -1,17 +1,16 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="IWatchdogTelemetry.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using System.Collections.Generic;
-using System.Fabric.Health;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Interfaces
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Fabric.Health;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     /// <summary>
     /// IWatchdogTelemetry interface.
     /// </summary>
@@ -37,12 +36,12 @@ namespace Microsoft.ServiceFabric.WatchdogService.Interfaces
         Task ReportAvailabilityAsync(
             string serviceUri,
             string instance,
-            string testName, 
-            DateTimeOffset captured, 
-            TimeSpan duration, 
-            string location, 
-            bool success, 
-            CancellationToken cancellationToken, 
+            string testName,
+            DateTimeOffset captured,
+            TimeSpan duration,
+            string location,
+            bool success,
+            CancellationToken cancellationToken,
             string message = null);
 
         /// <summary>
@@ -59,9 +58,9 @@ namespace Microsoft.ServiceFabric.WatchdogService.Interfaces
             string applicationName,
             string serviceName,
             string instance,
-            string source, 
-            string property, 
-            HealthState state, 
+            string source,
+            string property,
+            HealthState state,
             CancellationToken cancellationToken);
 
         /// <summary>
@@ -115,7 +114,8 @@ namespace Microsoft.ServiceFabric.WatchdogService.Interfaces
         /// <param name="deviation">Standard deviation of the sample set.</param>
         /// <param name="properties">IDictionary&lt;string&gt;,&lt;string&gt; containing name/value pairs of additional properties.</param>
         /// <param name="cancellationToken">CancellationToken instance.</param>
-        Task ReportMetricAsync(string roleName, string instance, string name, long value, int count, long min, long max, long sum, double deviation, IDictionary<string, string> properties, CancellationToken cancellationToken);
-
+        Task ReportMetricAsync(
+            string roleName, string instance, string name, long value, int count, long min, long max, long sum, double deviation,
+            IDictionary<string, string> properties, CancellationToken cancellationToken);
     }
 }

@@ -1,33 +1,84 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="HealthCheckOperations.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using Microsoft.ServiceFabric.Data.Collections;
-using Microsoft.ServiceFabric.Services.Client;
-using Microsoft.ServiceFabric.WatchdogService.Interfaces;
-using Microsoft.ServiceFabric.WatchdogService.Models;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Fabric;
-using System.Fabric.Health;
-using System.Fabric.Query;
-using System.Net.Http;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Fabric;
+    using System.Fabric.Description;
+    using System.Fabric.Health;
+    using System.Fabric.Query;
+    using System.Net.Http;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.ServiceFabric.Data;
+    using Microsoft.ServiceFabric.Data.Collections;
+    using Microsoft.ServiceFabric.Services.Client;
+    using Microsoft.ServiceFabric.WatchdogService.Interfaces;
+    using Microsoft.ServiceFabric.WatchdogService.Models;
+
     /// <summary>
     /// Watchdog health check service operations.
     /// This is intended to separate the service logic from the controller and stateful service code.
     /// </summary>
     internal sealed class HealthCheckOperations : IDisposable
     {
+        #region Constructors
+
+        /// <summary>
+        /// HealthCheckOperations constructor.
+        /// </summary>
+        /// <param name="svc">Reference to WatchdogService stateless service instance.</param>
+        /// <param name="telemetry">Reference to the WatchdogService ReportMetrics instance.</param>
+        /// <param name="interval">TimeSpan of the reporting interval.</param>
+        /// <param name="token">CancellationToken instance.</param>
+        /// <param name="timeout">Default fabric operation timeout value.</param>
+        public HealthCheckOperations(
+            IWatchdogService svc, IWatchdogTelemetry telemetry, TimeSpan interval, CancellationToken token, TimeSpan timeout = default(TimeSpan))
+        {
+            if (null == svc)
+            {
+                throw new ArgumentNullException("Argument 'svc' is null.");
+            }
+            if (null == telemetry)
+            {
+                throw new ArgumentNullException("Argument 'telemetry' is null.");
+            }
+
+            ServiceEventSource.Current.ServiceMessage(svc.Context, "HealthCheckOperations.Constructor");
+
+            this._token = token;
+            this._service = svc;
+            this._timeout = (default(TimeSpan) == timeout) ? TimeSpan.FromSeconds(5) : timeout;
+            this._telemetry = telemetry;
+            this._http = new HttpClient();
+
+            // Create a timer that calls the local method every 30 seconds starting 1 minute from now.
+            this._healthCheckTimer = new Timer(
+                async (o) =>
+                {
+                    try
+                    {
+                        await this.EnumerateHealthChecksAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        this._healthState = HealthState.Error;
+                        ServiceEventSource.Current.ServiceMessage(this._service.Context, "Exception {0} in {1}", ex.Message, "HealthCheckTimer method");
+                    }
+                },
+                this._token,
+                interval,
+                interval.Add(TimeSpan.FromSeconds(30)));
+        }
+
+        #endregion
+
         #region Private Members
 
         /// <summary>
@@ -38,7 +89,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <summary>
         /// Service Fabric client.
         /// </summary>
-        internal FabricClient Client => _service.Client;
+        internal FabricClient Client => this._service.Client;
 
         /// <summary>
         /// IWatchdogTelemetry instance.
@@ -87,7 +138,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <summary>
         /// Number of health checks registered with the watchdog.
         /// </summary>
-        public int HealthCheckCount => Volatile.Read(ref _healthCheckCount);
+        public int HealthCheckCount => Volatile.Read(ref this._healthCheckCount);
 
         /// <summary>
         /// Gets the health state of the cleanup operation.
@@ -96,8 +147,8 @@ namespace Microsoft.ServiceFabric.WatchdogService
         {
             get
             {
-                ServiceEventSource.Current.Trace("HealthState", Enum.GetName(typeof(HealthState), _healthState));
-                return _healthState;
+                ServiceEventSource.Current.Trace("HealthState", Enum.GetName(typeof(HealthState), this._healthState));
+                return this._healthState;
             }
         }
 
@@ -106,47 +157,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         public TimeSpan TimerInterval
         {
-            set { _healthCheckTimer.Change(value, value.Add(TimeSpan.FromSeconds(30))); }
-        }
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// HealthCheckOperations constructor.
-        /// </summary>
-        /// <param name="svc">Reference to WatchdogService stateless service instance.</param>
-        /// <param name="telemetry">Reference to the WatchdogService ReportMetrics instance.</param>
-        /// <param name="interval">TimeSpan of the reporting interval.</param>
-        /// <param name="token">CancellationToken instance.</param>
-        /// <param name="timeout">Default fabric operation timeout value.</param>
-        public HealthCheckOperations(IWatchdogService svc, IWatchdogTelemetry telemetry, TimeSpan interval, CancellationToken token, TimeSpan timeout = default(TimeSpan))
-        {
-            if (null == svc) throw new ArgumentNullException("Argument 'svc' is null.");
-            if (null == telemetry) throw new ArgumentNullException("Argument 'telemetry' is null.");
-
-            ServiceEventSource.Current.ServiceMessage(svc.Context, "HealthCheckOperations.Constructor");
-
-            _token = token;
-            _service = svc;
-            _timeout = (default(TimeSpan) == timeout) ? TimeSpan.FromSeconds(5) : timeout;
-            _telemetry = telemetry;
-            _http = new HttpClient();
-
-            // Create a timer that calls the local method every 30 seconds starting 1 minute from now.
-            _healthCheckTimer = new Timer(async (o) => 
-            {
-                try
-                {
-                    await EnumerateHealthChecksAsync();
-                }
-                catch(Exception ex)
-                {
-                    _healthState = HealthState.Error;
-                    ServiceEventSource.Current.ServiceMessage(_service.Context, "Exception {0} in {1}", ex.Message, "HealthCheckTimer method");
-                }
-            }, _token, interval, interval.Add(TimeSpan.FromSeconds(30)));
+            set { this._healthCheckTimer.Change(value, value.Add(TimeSpan.FromSeconds(30))); }
         }
 
         #endregion
@@ -158,7 +169,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         private async Task<IReliableDictionary<string, HealthCheck>> GetHealthCheckDictionaryAsync()
         {
-            return await _service.StateManager.GetOrAddAsync<IReliableDictionary<string, HealthCheck>>("healthCheckDictionary").ConfigureAwait(false);
+            return await this._service.StateManager.GetOrAddAsync<IReliableDictionary<string, HealthCheck>>("healthCheckDictionary").ConfigureAwait(false);
         }
 
         /// <summary>
@@ -166,7 +177,10 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         private async Task<IReliableDictionary<long, WatchdogScheduledItem>> GetHealthCheckScheduleDictionaryAsync()
         {
-            return await _service.StateManager.GetOrAddAsync<IReliableDictionary<long, WatchdogScheduledItem>>("healthCheckScheduleDictionary").ConfigureAwait(false);
+            return
+                await
+                    this._service.StateManager.GetOrAddAsync<IReliableDictionary<long, WatchdogScheduledItem>>("healthCheckScheduleDictionary")
+                        .ConfigureAwait(false);
         }
 
         /// <summary>
@@ -180,7 +194,8 @@ namespace Microsoft.ServiceFabric.WatchdogService
             try
             {
                 // Check that the service name exists by retrieving the ServiceDescription.
-                var sd = await Client.ServiceManager.GetServiceDescriptionAsync(serviceName, _timeout, _token).ConfigureAwait(false);
+                ServiceDescription sd =
+                    await this.Client.ServiceManager.GetServiceDescriptionAsync(serviceName, this._timeout, this._token).ConfigureAwait(false);
                 if (null != sd)
                 {
                     // If a partition was not specified, return true.
@@ -190,18 +205,33 @@ namespace Microsoft.ServiceFabric.WatchdogService
                     }
 
                     // A partition was specified, attempt to look up the definition. If at least one row is returned, return success.
-                    var list = await Client.QueryManager.GetPartitionAsync(partition, _timeout, _token).ConfigureAwait(false);
+                    ServicePartitionList list = await this.Client.QueryManager.GetPartitionAsync(partition, this._timeout, this._token).ConfigureAwait(false);
                     if (list.Count > 0)
                     {
                         return true;
                     }
                 }
             }
-            catch (FabricObjectClosedException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(ValidateServiceExistsAsync)); }
-            catch (TimeoutException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(ValidateServiceExistsAsync)); }
-            catch (FabricTransientException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(ValidateServiceExistsAsync)); }
-            catch (FabricException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(ValidateServiceExistsAsync)); }
-            catch (Exception ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(ValidateServiceExistsAsync)); }
+            catch (FabricObjectClosedException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.ValidateServiceExistsAsync));
+            }
+            catch (TimeoutException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.ValidateServiceExistsAsync));
+            }
+            catch (FabricTransientException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.ValidateServiceExistsAsync));
+            }
+            catch (FabricException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.ValidateServiceExistsAsync));
+            }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.ValidateServiceExistsAsync));
+            }
 
             return false;
         }
@@ -218,7 +248,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
             int retryCount = 5;
 
             // Get the schedule dictionary.
-            var schedDict = await GetHealthCheckScheduleDictionaryAsync().ConfigureAwait(false);
+            IReliableDictionary<long, WatchdogScheduledItem> schedDict = await this.GetHealthCheckScheduleDictionaryAsync().ConfigureAwait(false);
 
             // Get a copy of the desired execution time.
             long key = item.ExecutionTicks;
@@ -227,7 +257,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
             {
                 // Attempt to add the item. There may be a collision because the key already exists. 
                 // If it doesn't succeed try again with a new key.
-                if (await schedDict.TryAddAsync(tx, key, item, _timeout, _token).ConfigureAwait(false))
+                if (await schedDict.TryAddAsync(tx, key, item, this._timeout, this._token).ConfigureAwait(false))
                 {
                     return true;
                 }
@@ -246,30 +276,33 @@ namespace Microsoft.ServiceFabric.WatchdogService
         internal async Task EnumerateHealthChecksAsync()
         {
             // Check if the partition is readable/writable.
-            if (PartitionAccessStatus.Granted != _service.ReadStatus || PartitionAccessStatus.Granted != _service.WriteStatus)
+            if (PartitionAccessStatus.Granted != this._service.ReadStatus || PartitionAccessStatus.Granted != this._service.WriteStatus)
+            {
                 return;
+            }
 
             // Get the health check schedule items.
-            var scheduleDict = await GetHealthCheckScheduleDictionaryAsync();
+            IReliableDictionary<long, WatchdogScheduledItem> scheduleDict = await this.GetHealthCheckScheduleDictionaryAsync();
 
             // Create a transaction for the enumeration.
-            using (ITransaction eTx = _service.StateManager.CreateTransaction())
+            using (ITransaction eTx = this._service.StateManager.CreateTransaction())
             {
                 // Create the AsyncEnumerator.
-                var ae = (await scheduleDict.CreateEnumerableAsync(eTx, EnumerationMode.Ordered)).GetAsyncEnumerator();
-                while(await ae.MoveNextAsync(_token))
+                IAsyncEnumerator<KeyValuePair<long, WatchdogScheduledItem>> ae =
+                    (await scheduleDict.CreateEnumerableAsync(eTx, EnumerationMode.Ordered)).GetAsyncEnumerator();
+                while (await ae.MoveNextAsync(this._token))
                 {
                     // Compare the times, if this item is due for execution
                     if (ae.Current.Value.ExecutionTicks < DateTimeOffset.UtcNow.UtcTicks)
                     {
-                        await PerformItemHealthCheck(ae.Current.Value);
+                        await this.PerformItemHealthCheck(ae.Current.Value);
                     }
                 }
 
                 await eTx.CommitAsync();
             }
 
-            _healthState = HealthState.Ok;
+            this._healthState = HealthState.Ok;
         }
 
         /// <summary>
@@ -279,14 +312,14 @@ namespace Microsoft.ServiceFabric.WatchdogService
         internal async Task PerformItemHealthCheck(WatchdogScheduledItem item)
         {
             // Get the health check dictionaries.
-            var dict = await GetHealthCheckDictionaryAsync();
-            var scheduleDict = await GetHealthCheckScheduleDictionaryAsync();
+            IReliableDictionary<string, HealthCheck> dict = await this.GetHealthCheckDictionaryAsync();
+            IReliableDictionary<long, WatchdogScheduledItem> scheduleDict = await this.GetHealthCheckScheduleDictionaryAsync();
 
             // Create a transaction.
-            using (ITransaction tx = _service.StateManager.CreateTransaction())
+            using (ITransaction tx = this._service.StateManager.CreateTransaction())
             {
                 // Attempt to get the HealthCheck instance for the key. If not return.
-                var cv = await dict.TryGetValueAsync(tx, item.Key, LockMode.Update);
+                ConditionalValue<HealthCheck> cv = await dict.TryGetValueAsync(tx, item.Key, LockMode.Update);
                 if (cv.HasValue)
                 {
                     HealthCheck hc = cv.Value;
@@ -295,15 +328,15 @@ namespace Microsoft.ServiceFabric.WatchdogService
                     {
                         // Find the partition information that matches the partition identifier.
                         // If the partition isn't found, remove the health check item.
-                        Partition partition = await FindMatchingPartitionAsync(hc.Partition);
+                        Partition partition = await this.FindMatchingPartitionAsync(hc.Partition);
                         if (null == partition)
                         {
-                            await dict.TryRemoveAsync(tx, hc.Key, _timeout, _token);
+                            await dict.TryRemoveAsync(tx, hc.Key, this._timeout, this._token);
                         }
                         else
                         {
                             // Execute the check and evaluate the results returned in the new HealthCheck instance.
-                            hc = await ExecuteHealthCheckAsync(hc, partition);
+                            hc = await this.ExecuteHealthCheckAsync(hc, partition);
 
                             // Update the value of the HealthCheck to store the results of the test.
                             await dict.TryUpdateAsync(tx, item.Key, hc, cv.Value);
@@ -312,16 +345,27 @@ namespace Microsoft.ServiceFabric.WatchdogService
                             await scheduleDict.TryRemoveAsync(tx, item.ExecutionTicks);
 
                             // Add the new scheduled item.
-                            var newItem = new WatchdogScheduledItem(hc.LastAttempt.Add(hc.Frequency), hc.Key);
+                            WatchdogScheduledItem newItem = new WatchdogScheduledItem(hc.LastAttempt.Add(hc.Frequency), hc.Key);
                             await (scheduleDict.TryAddAsync(tx, newItem.ExecutionTicks, newItem));
                         }
 
                         // Commit the transaction.
                         await tx.CommitAsync();
                     }
-                    catch (TimeoutException ex) { ServiceEventSource.Current.ServiceMessage(_service.Context, ex.Message); }
-                    catch (FabricNotPrimaryException ex) { ServiceEventSource.Current.ServiceMessage(_service.Context, ex.Message); return; }
-                    catch (Exception ex) { ServiceEventSource.Current.ServiceMessage(_service.Context, ex.Message); throw; }
+                    catch (TimeoutException ex)
+                    {
+                        ServiceEventSource.Current.ServiceMessage(this._service.Context, ex.Message);
+                    }
+                    catch (FabricNotPrimaryException ex)
+                    {
+                        ServiceEventSource.Current.ServiceMessage(this._service.Context, ex.Message);
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        ServiceEventSource.Current.ServiceMessage(this._service.Context, ex.Message);
+                        throw;
+                    }
                 }
             }
         }
@@ -336,19 +380,23 @@ namespace Microsoft.ServiceFabric.WatchdogService
         {
             // Check passed parameters.
             if ((null == partition) || (default(HealthCheck) == hc))
+            {
                 return default(HealthCheck);
+            }
 
             // Get the service endpoint of the service being tested.
-            ResolvedServiceEndpoint rse = await GetServiceEndpointAsync(hc.ServiceName, partition);
+            ResolvedServiceEndpoint rse = await this.GetServiceEndpointAsync(hc.ServiceName, partition);
             if (null == rse)
+            {
                 return default(HealthCheck);
+            }
 
             // If an endpoint name was specified, search for that name within the ResolvedServiceEndpoint instance.
             string baseAddress = (string.IsNullOrWhiteSpace(hc.Endpoint)) ? rse.GetFirstEndpoint() : rse.GetEndpoint(hc.Endpoint);
             Uri uri = new Uri($"{baseAddress}/{hc.SuffixPath}");
 
             // Create the HttpRequest message.
-            var request = CreateRequestMessage(hc, uri);
+            HttpRequestMessage request = this.CreateRequestMessage(hc, uri);
 
             try
             {
@@ -357,16 +405,16 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
                 // Make the request to the service being tested.
                 Stopwatch sw = Stopwatch.StartNew();
-                var response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, _token);
+                HttpResponseMessage response = await this._http.SendAsync(request, HttpCompletionOption.ResponseContentRead, this._token);
                 sw.Stop();
 
                 // Evaluate the result of the request. If specific codes were provided, check each of the code arrays to find the result code.
-                if ((null != hc.WarningStatusCodes) && (hc.WarningStatusCodes.Contains((int)hc.ResultCode)))
+                if ((null != hc.WarningStatusCodes) && (hc.WarningStatusCodes.Contains((int) hc.ResultCode)))
                 {
                     hs = HealthState.Warning;
                     success = false;
                 }
-                else if ((null != hc.ErrorStatusCodes) && (hc.ErrorStatusCodes.Contains((int)hc.ResultCode)))
+                else if ((null != hc.ErrorStatusCodes) && (hc.ErrorStatusCodes.Contains((int) hc.ResultCode)))
                 {
                     hs = HealthState.Error;
                     success = false;
@@ -378,21 +426,34 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 }
 
                 // Report health result to Service Fabric.
-                Client.HealthManager.ReportHealth(new PartitionHealthReport(hc.Partition, new HealthInformation("Watchdog Health Check", hc.Name, hs)));
+                this.Client.HealthManager.ReportHealth(new PartitionHealthReport(hc.Partition, new HealthInformation("Watchdog Health Check", hc.Name, hs)));
 
                 // Report the availability of the tested service to the telemetry provider.
-                await _telemetry.ReportAvailabilityAsync(hc.ServiceName.AbsoluteUri, hc.Partition.ToString(), hc.Name, hc.LastAttempt, TimeSpan.FromMilliseconds(hc.Duration), null, success, _token);
+                await
+                    this._telemetry.ReportAvailabilityAsync(
+                        hc.ServiceName.AbsoluteUri,
+                        hc.Partition.ToString(),
+                        hc.Name,
+                        hc.LastAttempt,
+                        TimeSpan.FromMilliseconds(hc.Duration),
+                        null,
+                        success,
+                        this._token);
 
                 // Return a new HealthCheck instance containing the results of the request.
                 long count = (success) ? 0 : hc.FailureCount + 1;
                 return hc.UpdateWith(DateTime.UtcNow, count, sw.ElapsedMilliseconds, response.StatusCode);
             }
-            catch(FabricTransientException ex)
+            catch (FabricTransientException ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(ExecuteHealthCheckAsync));
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.ExecuteHealthCheckAsync));
                 return hc.UpdateWith(DateTime.UtcNow, hc.FailureCount + 1, -1, System.Net.HttpStatusCode.InternalServerError);
             }
-            catch (Exception ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(ExecuteHealthCheckAsync)); throw; }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.ExecuteHealthCheckAsync));
+                throw;
+            }
         }
 
         /// <summary>
@@ -404,12 +465,12 @@ namespace Microsoft.ServiceFabric.WatchdogService
         internal HttpRequestMessage CreateRequestMessage(HealthCheck hc, Uri address)
         {
             // Create the HttpRequestMessage initialized with the values configured for the HealthCheck.
-            var request = new HttpRequestMessage() { RequestUri = address, Method = hc.Method };
+            HttpRequestMessage request = new HttpRequestMessage() {RequestUri = address, Method = hc.Method};
 
             // If headers are specified, add them to the request.
             if (null != hc.Headers)
             {
-                foreach (var header in hc.Headers)
+                foreach (KeyValuePair<string, string> header in hc.Headers)
                 {
                     request.Headers.Add(header.Key, header.Value);
                 }
@@ -456,13 +517,15 @@ namespace Microsoft.ServiceFabric.WatchdogService
         internal async Task<Partition> FindMatchingPartitionAsync(Guid partition)
         {
             // Get a list of partitions matching the filter. Should be a single one.
-            ServicePartitionList spList = await Client.QueryManager.GetPartitionAsync(partition);
+            ServicePartitionList spList = await this.Client.QueryManager.GetPartitionAsync(partition);
 
             // Enumerate the list looking for the matching partition identifier.
             foreach (Partition p in spList)
             {
                 if (p.PartitionInformation.Id == partition)
+                {
                     return p;
+                }
             }
 
             return null;
@@ -476,13 +539,15 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <returns>ResolvedServiceEndpoint instance if found, otherwise null.</returns>
         internal async Task<ResolvedServiceEndpoint> GetServiceEndpointAsync(Uri service, Guid pId)
         {
-            Partition partition = await FindMatchingPartitionAsync(pId);
+            Partition partition = await this.FindMatchingPartitionAsync(pId);
             if (null != partition)
             {
-                return await GetServiceEndpointAsync(service, partition);
+                return await this.GetServiceEndpointAsync(service, partition);
             }
 
-            ServiceEventSource.Current.Error(nameof(GetServiceEndpointAsync), $"Could not find partition. Service: {service.AbsoluteUri} Partition: {partition}.");
+            ServiceEventSource.Current.Error(
+                nameof(GetServiceEndpointAsync),
+                $"Could not find partition. Service: {service.AbsoluteUri} Partition: {partition}.");
 
             return null;
         }
@@ -497,9 +562,13 @@ namespace Microsoft.ServiceFabric.WatchdogService
         {
             // Check passed parameters.
             if (null == service)
+            {
                 throw new ArgumentNullException(nameof(service));
+            }
             if (null == partition)
+            {
                 throw new ArgumentNullException(nameof(partition));
+            }
 
             ServiceEventSource.Current.Trace(nameof(GetServiceEndpointAsync), $"Service: {service.AbsoluteUri} Partition: {partition}.");
 
@@ -515,11 +584,11 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 else if (partition.PartitionInformation.Kind == ServicePartitionKind.Int64Range)
                 {
                     // Choose the LowKey as the partition value to look up.
-                    key = new ServicePartitionKey(((Int64RangePartitionInformation)partition.PartitionInformation).LowKey);
+                    key = new ServicePartitionKey(((Int64RangePartitionInformation) partition.PartitionInformation).LowKey);
                 }
                 else if (partition.PartitionInformation.Kind == ServicePartitionKind.Named)
                 {
-                    key = new ServicePartitionKey(((NamedPartitionInformation)partition.PartitionInformation).Name);
+                    key = new ServicePartitionKey(((NamedPartitionInformation) partition.PartitionInformation).Name);
                 }
                 else
                 {
@@ -529,8 +598,8 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 }
 
                 // Resolve the partition, then enumerate the endpoints looking for the primary or stateless role.
-                var rsp = await ServicePartitionResolver.GetDefault().ResolveAsync(service, key, _token);
-                foreach(var ep in rsp.Endpoints)
+                ResolvedServicePartition rsp = await ServicePartitionResolver.GetDefault().ResolveAsync(service, key, this._token);
+                foreach (ResolvedServiceEndpoint ep in rsp.Endpoints)
                 {
                     if ((ServiceEndpointRole.StatefulPrimary == ep.Role) || (ServiceEndpointRole.Stateless == ep.Role))
                     {
@@ -542,7 +611,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 ServiceEventSource.Current.Trace($"{nameof(GetServiceEndpointAsync)} no endpoint was found, returning null.");
                 return null;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(GetServiceEndpointAsync));
                 throw;
@@ -562,36 +631,51 @@ namespace Microsoft.ServiceFabric.WatchdogService
         public async Task<bool> AddHealthCheckAsync(HealthCheck hcm)
         {
             // Validate that the service name actually exists within the cluster. If it doesn't, throw an error.
-            if (false == await ValidateServiceExistsAsync(hcm.ServiceName, hcm.Partition).ConfigureAwait(false))
+            if (false == await this.ValidateServiceExistsAsync(hcm.ServiceName, hcm.Partition).ConfigureAwait(false))
             {
                 throw new ArgumentException($"Service '{hcm.ServiceName?.AbsoluteUri}' does not exist within the cluster.", nameof(hcm.ServiceName));
             }
 
             // Get the required dictionaries.
-            var hcDict = await GetHealthCheckDictionaryAsync().ConfigureAwait(false);
+            IReliableDictionary<string, HealthCheck> hcDict = await this.GetHealthCheckDictionaryAsync().ConfigureAwait(false);
 
             try
             {
                 // Create a transaction.
-                using (ITransaction tx = _service.StateManager.CreateTransaction())
+                using (ITransaction tx = this._service.StateManager.CreateTransaction())
                 {
                     // Add or update the HealthCheck item in the dictionary.
-                    await hcDict.AddOrUpdateAsync(tx, hcm.Key, hcm, (k, v) => { return hcm; }, _timeout, _token).ConfigureAwait(false);
-                    Interlocked.Increment(ref _healthCheckCount);
+                    await hcDict.AddOrUpdateAsync(tx, hcm.Key, hcm, (k, v) => { return hcm; }, this._timeout, this._token).ConfigureAwait(false);
+                    Interlocked.Increment(ref this._healthCheckCount);
 
                     // Create the HealthCheckScheduleItem instance and save it.
-                    if (await SaveAsync(tx, new WatchdogScheduledItem(DateTimeOffset.UtcNow, hcm.Key)).ConfigureAwait(false))
+                    if (await this.SaveAsync(tx, new WatchdogScheduledItem(DateTimeOffset.UtcNow, hcm.Key)).ConfigureAwait(false))
                     {
                         await tx.CommitAsync().ConfigureAwait(false);
                         return true;
                     }
                 }
             }
-            catch (FabricObjectClosedException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(AddHealthCheckAsync)); }
-            catch (TimeoutException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(AddHealthCheckAsync)); }
-            catch (FabricTransientException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(AddHealthCheckAsync)); }
-            catch (FabricException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(AddHealthCheckAsync)); }
-            catch (Exception ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(AddHealthCheckAsync)); }
+            catch (FabricObjectClosedException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.AddHealthCheckAsync));
+            }
+            catch (TimeoutException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.AddHealthCheckAsync));
+            }
+            catch (FabricTransientException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.AddHealthCheckAsync));
+            }
+            catch (FabricException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.AddHealthCheckAsync));
+            }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.AddHealthCheckAsync));
+            }
 
             return false;
         }
@@ -612,7 +696,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
             List<HealthCheck> items = new List<HealthCheck>();
 
             // Get the required dictionaries.
-            var hcDict = await GetHealthCheckDictionaryAsync().ConfigureAwait(false);
+            IReliableDictionary<string, HealthCheck> hcDict = await this.GetHealthCheckDictionaryAsync().ConfigureAwait(false);
 
             if ((false == string.IsNullOrWhiteSpace(application)) && (false == string.IsNullOrWhiteSpace(service)) && (partition.HasValue))
             {
@@ -629,51 +713,68 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
             try
             {
-                using (ITransaction tx = _service.StateManager.CreateTransaction())
+                using (ITransaction tx = this._service.StateManager.CreateTransaction())
                 {
                     // Query the dictionary for an order list filtered by however much the user specified.
-                    var list = await hcDict.CreateEnumerableAsync(tx, (s) => { return s.StartsWith(filter); }, EnumerationMode.Ordered).ConfigureAwait(false);
-                    var asyncEnumerator = list.GetAsyncEnumerator();
-                    while (await asyncEnumerator.MoveNextAsync(_token).ConfigureAwait(false))
+                    IAsyncEnumerable<KeyValuePair<string, HealthCheck>> list =
+                        await hcDict.CreateEnumerableAsync(tx, (s) => { return s.StartsWith(filter); }, EnumerationMode.Ordered).ConfigureAwait(false);
+                    IAsyncEnumerator<KeyValuePair<string, HealthCheck>> asyncEnumerator = list.GetAsyncEnumerator();
+                    while (await asyncEnumerator.MoveNextAsync(this._token).ConfigureAwait(false))
                     {
                         items.Add(asyncEnumerator.Current.Value);
                     }
                 }
             }
-            catch (FabricObjectClosedException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(GetHealthChecks)); }
-            catch (TimeoutException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(GetHealthChecks)); }
-            catch (FabricTransientException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(GetHealthChecks)); }
-            catch (FabricException ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(GetHealthChecks)); }
-            catch (Exception ex) { ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(GetHealthChecks)); }
+            catch (FabricObjectClosedException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+            }
+            catch (TimeoutException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+            }
+            catch (FabricTransientException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+            }
+            catch (FabricException ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+            }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+            }
 
             // Update the cached count and return the list of HealthCheck items.
-            Interlocked.Exchange(ref _healthCheckCount, items.Count);
+            Interlocked.Exchange(ref this._healthCheckCount, items.Count);
             return items;
         }
 
         #endregion
+
         #region IDisposable Support
 
         private bool disposedValue = false;
 
-        void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!this.disposedValue)
             {
                 if (disposing)
                 {
-                    _http.Dispose();
-                    _healthCheckTimer.Dispose();
+                    this._http.Dispose();
+                    this._healthCheckTimer.Dispose();
                 }
 
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
 
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
+            this.Dispose(true);
         }
 
         #endregion

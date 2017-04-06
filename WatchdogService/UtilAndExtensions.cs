@@ -1,17 +1,16 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="UtilAndExtensions.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Services.Communication;
-using System;
-using System.Collections.Generic;
-using System.Fabric;
-using System.Net;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Fabric;
+    using System.Net;
+    using Microsoft.ServiceFabric.Services.Communication;
+
     public static class Extensions
     {
         /// <summary>
@@ -24,14 +23,26 @@ namespace Microsoft.ServiceFabric.WatchdogService
         public static bool ListEquals<T>(IReadOnlyList<T> l1, IReadOnlyList<T> l2) where T : IEquatable<T>
         {
             // Check if they are the same list.
-            if (ReferenceEquals(l1, l2)) return true;
+            if (ReferenceEquals(l1, l2))
+            {
+                return true;
+            }
 
             // If either list is null, return the correct value.
-            if (null == l1) return false;
-            if (null == l2) return false;
+            if (null == l1)
+            {
+                return false;
+            }
+            if (null == l2)
+            {
+                return false;
+            }
 
             // Compare the number of items in each list.
-            if (l1.Count != l2.Count) return false;
+            if (l1.Count != l2.Count)
+            {
+                return false;
+            }
 
             // Compare each item in the list for equality. if they are not equal, return false.
             foreach (T l1Item in l1)
@@ -50,7 +61,10 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 }
 
                 // if not found, the lists are different.
-                if (!found) return false;
+                if (!found)
+                {
+                    return false;
+                }
             }
 
             // The lists are equal.
@@ -68,21 +82,39 @@ namespace Microsoft.ServiceFabric.WatchdogService
         public static bool DictionaryEquals<K, V>(IReadOnlyDictionary<K, V> d1, IReadOnlyDictionary<K, V> d2) where V : IEquatable<V>
         {
             // Check if they are the same list.
-            if (ReferenceEquals(d1, d2)) return true;
+            if (ReferenceEquals(d1, d2))
+            {
+                return true;
+            }
 
             // If either dictionary is null, return the correct value.
-            if (null == d1) return false;
-            if (null == d2) return false;
+            if (null == d1)
+            {
+                return false;
+            }
+            if (null == d2)
+            {
+                return false;
+            }
 
             // Compare the number of items in each dictionary.
-            if (d1.Count != d2.Count) return false;
+            if (d1.Count != d2.Count)
+            {
+                return false;
+            }
 
             // Compare each key value pair in the dictionary for equality. If they are not equal, return the value.
             foreach (KeyValuePair<K, V> kvp in d1)
             {
                 // Check that the key is contained within the second list and that their values are the same.
-                if (false == d2.ContainsKey(kvp.Key)) return false;
-                if (false == kvp.Value.Equals(d2[kvp.Key])) return false;
+                if (false == d2.ContainsKey(kvp.Key))
+                {
+                    return false;
+                }
+                if (false == kvp.Value.Equals(d2[kvp.Key]))
+                {
+                    return false;
+                }
             }
 
             // They are equal.
@@ -97,8 +129,10 @@ namespace Microsoft.ServiceFabric.WatchdogService
         public static bool IsSuccessCode(this HttpStatusCode code)
         {
             // If the code is outside of the success code range of 200-299, return false.
-            if (((int)code < 200) || ((int)code > 299))
+            if (((int) code < 200) || ((int) code > 299))
+            {
                 return false;
+            }
 
             return true;
         }
@@ -143,10 +177,14 @@ namespace Microsoft.ServiceFabric.WatchdogService
                     return replicaAddress;
                 }
                 else
+                {
                     throw new ArgumentException(nameof(name));
+                }
             }
             else
+            {
                 throw new InvalidProgramException("ResolvedServiceEndpoint had invalid address");
+            }
         }
     }
 }

@@ -1,17 +1,16 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="ServiceEventSource.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using System.Diagnostics.Tracing;
-using System.Fabric;
-using System.Threading.Tasks;
-using System.Runtime.CompilerServices;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService
 {
+    using System;
+    using System.Diagnostics.Tracing;
+    using System.Fabric;
+    using System.Runtime.CompilerServices;
+    using System.Threading.Tasks;
+
     [EventSource(Name = "Microsoft-ServiceFabric-WatchdogService")]
     internal sealed class ServiceEventSource : EventSource
     {
@@ -25,24 +24,29 @@ namespace Microsoft.ServiceFabric.WatchdogService
         }
 
         // Instance constructor is private to enforce singleton semantics
-        private ServiceEventSource() : base() { }
+        private ServiceEventSource() : base()
+        {
+        }
 
         #region Keywords
+
         // Event keywords can be used to categorize events. 
         // Each keyword is a bit flag. A single event can be associated with multiple keywords (via EventAttribute.Keywords property).
         // Keywords must be defined as a public class named 'Keywords' inside EventSource that uses them.
         public static class Keywords
         {
-            public const EventKeywords Requests = (EventKeywords)0x1L;
-            public const EventKeywords ServiceInitialization = (EventKeywords)0x02L;
-            public const EventKeywords Exceptions = (EventKeywords)0x04L;
-            public const EventKeywords Traces = (EventKeywords)0x08L;
-            public const EventKeywords Errors = (EventKeywords)0x10L;
-            public const EventKeywords Warnings = (EventKeywords)0x20L;
+            public const EventKeywords Requests = (EventKeywords) 0x1L;
+            public const EventKeywords ServiceInitialization = (EventKeywords) 0x02L;
+            public const EventKeywords Exceptions = (EventKeywords) 0x04L;
+            public const EventKeywords Traces = (EventKeywords) 0x08L;
+            public const EventKeywords Errors = (EventKeywords) 0x10L;
+            public const EventKeywords Warnings = (EventKeywords) 0x20L;
         }
+
         #endregion
 
         #region Events
+
         // Define an instance method for each event you want to record and apply an [Event] attribute to it.
         // The method name is the name of the event.
         // Pass any parameters you want to record with the event (only primitive integer types, DateTime, Guid & string are allowed).
@@ -57,17 +61,18 @@ namespace Microsoft.ServiceFabric.WatchdogService
             if (this.IsEnabled())
             {
                 string finalMessage = string.Format(message, args);
-                Message(finalMessage);
+                this.Message(finalMessage);
             }
         }
 
         private const int MessageEventId = 1;
+
         [Event(MessageEventId, Level = EventLevel.Informational, Message = "{0}")]
         public void Message(string message)
         {
             if (this.IsEnabled())
             {
-                WriteEvent(MessageEventId, message);
+                this.WriteEvent(MessageEventId, message);
             }
         }
 
@@ -76,9 +81,8 @@ namespace Microsoft.ServiceFabric.WatchdogService
         {
             if (this.IsEnabled())
             {
-
                 string finalMessage = string.Format(message, args);
-                ServiceMessage(
+                this.ServiceMessage(
                     serviceContext.ServiceName.ToString(),
                     serviceContext.ServiceTypeName,
                     GetReplicaOrInstanceId(serviceContext),
@@ -94,12 +98,13 @@ namespace Microsoft.ServiceFabric.WatchdogService
         // This results in more efficient parameter handling, but requires explicit allocation of EventData structure and unsafe code.
         // To enable this code path, define UNSAFE conditional compilation symbol and turn on unsafe code support in project properties.
         private const int ServiceMessageEventId = 2;
+
         [Event(ServiceMessageEventId, Level = EventLevel.Informational, Message = "{7}")]
         private
 #if UNSAFE
         unsafe
 #endif
-        void ServiceMessage(
+            void ServiceMessage(
             string serviceName,
             string serviceTypeName,
             long replicaOrInstanceId,
@@ -110,7 +115,16 @@ namespace Microsoft.ServiceFabric.WatchdogService
             string message)
         {
 #if !UNSAFE
-            WriteEvent(ServiceMessageEventId, serviceName, serviceTypeName, replicaOrInstanceId, partitionId, applicationName, applicationTypeName, nodeName, message);
+            this.WriteEvent(
+                ServiceMessageEventId,
+                serviceName,
+                serviceTypeName,
+                replicaOrInstanceId,
+                partitionId,
+                applicationName,
+                applicationTypeName,
+                nodeName,
+                message);
 #else
             const int numArgs = 8;
             fixed (char* pServiceName = serviceName, pServiceTypeName = serviceTypeName, pApplicationName = applicationName, pApplicationTypeName = applicationTypeName, pNodeName = nodeName, pMessage = message)
@@ -131,68 +145,79 @@ namespace Microsoft.ServiceFabric.WatchdogService
         }
 
         private const int ServiceTypeRegisteredEventId = 3;
-        [Event(ServiceTypeRegisteredEventId, Level = EventLevel.Informational, Message = "Service host process {0} registered service type {1}", Keywords = Keywords.ServiceInitialization)]
+
+        [Event(ServiceTypeRegisteredEventId, Level = EventLevel.Informational, Message = "Service host process {0} registered service type {1}",
+            Keywords = Keywords.ServiceInitialization)]
         public void ServiceTypeRegistered(int hostProcessId, string serviceType)
         {
-            WriteEvent(ServiceTypeRegisteredEventId, hostProcessId, serviceType);
+            this.WriteEvent(ServiceTypeRegisteredEventId, hostProcessId, serviceType);
         }
 
         private const int ServiceHostInitializationFailedEventId = 4;
-        [Event(ServiceHostInitializationFailedEventId, Level = EventLevel.Error, Message = "Service host initialization failed", Keywords = Keywords.ServiceInitialization)]
+
+        [Event(ServiceHostInitializationFailedEventId, Level = EventLevel.Error, Message = "Service host initialization failed",
+            Keywords = Keywords.ServiceInitialization)]
         public void ServiceHostInitializationFailed(string exception)
         {
-            WriteEvent(ServiceHostInitializationFailedEventId, exception);
+            this.WriteEvent(ServiceHostInitializationFailedEventId, exception);
         }
 
         // A pair of events sharing the same name prefix with a "Start"/"Stop" suffix implicitly marks boundaries of an event tracing activity.
         // These activities can be automatically picked up by debugging and profiling tools, which can compute their execution time, child activities,
         // and other statistics.
         private const int ServiceRequestStartEventId = 5;
+
         [Event(ServiceRequestStartEventId, Level = EventLevel.Informational, Message = "Service request '{0}' started in {1}", Keywords = Keywords.Requests)]
         public void ServiceRequestStart(string requestTypeName, [CallerMemberName] string method = "")
         {
-            WriteEvent(ServiceRequestStartEventId, requestTypeName, method);
+            this.WriteEvent(ServiceRequestStartEventId, requestTypeName, method);
         }
 
         private const int ServiceRequestStopEventId = 6;
-        [Event(ServiceRequestStopEventId, Level = EventLevel.Informational, Message = "Service request '{0}' finished in {2}. {1} ", Keywords = Keywords.Requests)]
+
+        [Event(ServiceRequestStopEventId, Level = EventLevel.Informational, Message = "Service request '{0}' finished in {2}. {1} ",
+            Keywords = Keywords.Requests)]
         public void ServiceRequestStop(string requestTypeName, string exception = "", [CallerMemberName] string method = "")
         {
-            WriteEvent(ServiceRequestStopEventId, requestTypeName, exception, method);
+            this.WriteEvent(ServiceRequestStopEventId, requestTypeName, exception, method);
         }
 
         private const int ServiceTraceEventId = 7;
+
         [Event(ServiceTraceEventId, Level = EventLevel.Verbose, Message = "Trace '{0}' in {1}. {2}", Keywords = Keywords.Traces)]
         public void Trace(string name, string args = "", [CallerMemberName] string method = "")
         {
-            WriteEvent(ServiceTraceEventId, name, method, args);
+            this.WriteEvent(ServiceTraceEventId, name, method, args);
         }
 
         private const int ServiceErrorEventId = 8;
+
         [Event(ServiceErrorEventId, Level = EventLevel.Error, Message = "Error '{0}' in {1}. {2}", Keywords = Keywords.Errors)]
         public void Error(string name, string args = "", [CallerMemberName] string method = "")
         {
-            WriteEvent(ServiceErrorEventId, name, method, args);
+            this.WriteEvent(ServiceErrorEventId, name, method, args);
         }
 
         private const int ServiceWarningEventId = 9;
+
         [Event(ServiceWarningEventId, Level = EventLevel.Warning, Message = "Warning '{0}' in {1}. {2}", Keywords = Keywords.Warnings)]
         public void Warning(string name, string args = "", [CallerMemberName] string method = "")
         {
-            WriteEvent(ServiceWarningEventId, name, method, args);
+            this.WriteEvent(ServiceWarningEventId, name, method, args);
         }
 
         private const int ServiceExceptionEventId = 10;
+
         [Event(ServiceExceptionEventId, Level = EventLevel.Error, Message = "Exception {0} {1} in {3}. {2}", Keywords = Keywords.Exceptions)]
         public void Exception(string exMsg, string exception, string stack, [CallerMemberName] string method = "")
         {
-            WriteEvent(ServiceExceptionEventId, exMsg, exception, stack, method);
+            this.WriteEvent(ServiceExceptionEventId, exMsg, exception, stack, method);
         }
-
 
         #endregion
 
         #region Private methods
+
         private static long GetReplicaOrInstanceId(ServiceContext context)
         {
             StatelessServiceContext stateless = context as StatelessServiceContext;
@@ -209,6 +234,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
             throw new NotSupportedException("Context type not supported.");
         }
+
 #if UNSAFE
         private int SizeInBytes(string s)
         {
@@ -222,6 +248,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
             }
         }
 #endif
+
         #endregion
     }
 }

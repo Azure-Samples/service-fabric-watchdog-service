@@ -1,18 +1,16 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="WatchdogController.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Controllers
 {
-    using Models;
-    using System;
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
     using System.Web.Http;
+    using Microsoft.ServiceFabric.WatchdogService.Models;
 
     /// <summary>
     /// MetricsController
@@ -30,7 +28,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
         /// </summary><param name="service">Operations class instance.</param>
         internal WatchdogController(WatchdogService service)
         {
-            _service = service;
+            this._service = service;
         }
 
         #region Watchdog Health for Self Monitoring
@@ -40,36 +38,36 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
         public async Task<HttpResponseMessage> GetWatchdogHealth()
         {
             // Check that the Watchdog service class exists.
-            if (null == _service)
+            if (null == this._service)
             {
-                ServiceEventSource.Current.Error(nameof(GetWatchdogHealth), "WatchdogService instance is null.");
-                return Request.CreateResponse(HttpStatusCode.InternalServerError);
+                ServiceEventSource.Current.Error(nameof(this.GetWatchdogHealth), "WatchdogService instance is null.");
+                return this.Request.CreateResponse(HttpStatusCode.InternalServerError);
             }
 
             // Check the HealthCheckOperation class exists.
-            if (null == _service.HealthCheckOperations)
+            if (null == this._service.HealthCheckOperations)
             {
-                ServiceEventSource.Current.Error(nameof(GetWatchdogHealth), "HealthCheckOperations instance is null.");
-                return Request.CreateResponse(HttpStatusCode.InternalServerError);
+                ServiceEventSource.Current.Error(nameof(this.GetWatchdogHealth), "HealthCheckOperations instance is null.");
+                return this.Request.CreateResponse(HttpStatusCode.InternalServerError);
             }
 
             // Check the MetricsOperations class exists.
-            if (null == _service.MetricsOperations)
+            if (null == this._service.MetricsOperations)
             {
-                ServiceEventSource.Current.Error(nameof(GetWatchdogHealth), "MetricsOperations instance is null.");
-                return Request.CreateResponse(HttpStatusCode.InternalServerError);
+                ServiceEventSource.Current.Error(nameof(this.GetWatchdogHealth), "MetricsOperations instance is null.");
+                return this.Request.CreateResponse(HttpStatusCode.InternalServerError);
             }
 
             // Check that there are items being monitored.
-            var items = await _service.HealthCheckOperations.GetHealthChecks();
+            IList<HealthCheck> items = await this._service.HealthCheckOperations.GetHealthChecks();
             if (0 == items.Count)
             {
-                ServiceEventSource.Current.Warning(nameof(GetWatchdogHealth), "No HealthCheck have been registered with the watchdog.");
-                return Request.CreateResponse(HttpStatusCode.NoContent);
+                ServiceEventSource.Current.Warning(nameof(this.GetWatchdogHealth), "No HealthCheck have been registered with the watchdog.");
+                return this.Request.CreateResponse(HttpStatusCode.NoContent);
             }
 
             // Return the status.
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return this.Request.CreateResponse(HttpStatusCode.OK);
         }
 
         #endregion

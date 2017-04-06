@@ -1,15 +1,14 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="ServiceRequestActionFilterAttribute.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using System.Web.Http.Controllers;
-using System.Web.Http.Filters;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService
 {
+    using System;
+    using System.Web.Http.Controllers;
+    using System.Web.Http.Filters;
+
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
     internal sealed class ServiceRequestActionFilterAttribute : ActionFilterAttribute
     {
@@ -20,7 +19,8 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
         public override void OnActionExecuted(HttpActionExecutedContext actionExecutedContext)
         {
-            ServiceEventSource.Current.ServiceRequestStop(actionExecutedContext.ActionContext.ActionDescriptor.ActionName,
+            ServiceEventSource.Current.ServiceRequestStop(
+                actionExecutedContext.ActionContext.ActionDescriptor.ActionName,
                 actionExecutedContext.Exception?.ToString() ?? string.Empty);
         }
     }

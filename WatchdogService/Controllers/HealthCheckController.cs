@@ -1,18 +1,17 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="HealthCheckController.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Controllers
 {
-    using Models;
     using System;
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
     using System.Web.Http;
+    using Microsoft.ServiceFabric.WatchdogService.Models;
 
     /// <summary>
     /// HealthCheckController.
@@ -31,7 +30,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
         /// <param name="service">WatchdogService class instance.</param>
         internal HealthCheckController(WatchdogService service)
         {
-            _operations = service.HealthCheckOperations;
+            this._operations = service.HealthCheckOperations;
         }
 
         #region Watchdog Health for Self Monitoring
@@ -41,16 +40,20 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
         public async Task<HttpResponseMessage> GetWatchdogHealth()
         {
             // Check that an operations class exists.
-            if (null == _operations)
-                return Request.CreateResponse(HttpStatusCode.InternalServerError);
+            if (null == this._operations)
+            {
+                return this.Request.CreateResponse(HttpStatusCode.InternalServerError);
+            }
 
             // Check that there are items being monitored.
-            var items = await _operations.GetHealthChecks();
+            IList<HealthCheck> items = await this._operations.GetHealthChecks();
             if (0 == items.Count)
-                return Request.CreateResponse(HttpStatusCode.NoContent);
+            {
+                return this.Request.CreateResponse(HttpStatusCode.NoContent);
+            }
 
             // Return the status.
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return this.Request.CreateResponse(HttpStatusCode.OK);
         }
 
         #endregion
@@ -63,18 +66,18 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
         {
             try
             {
-                ServiceEventSource.Current.ServiceRequestStart(nameof(GetHealthCheck));
+                ServiceEventSource.Current.ServiceRequestStart(nameof(this.GetHealthCheck));
 
                 // Get the list of health check items.
-                IList<HealthCheck> items = await _operations.GetHealthChecks(application, service, partition);
-                ServiceEventSource.Current.ServiceRequestStop(nameof(GetHealthCheck));
+                IList<HealthCheck> items = await this._operations.GetHealthChecks(application, service, partition);
+                ServiceEventSource.Current.ServiceRequestStop(nameof(this.GetHealthCheck));
 
-                return Request.CreateResponse(HttpStatusCode.OK, items);
+                return this.Request.CreateResponse(HttpStatusCode.OK, items);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(GetHealthCheck));
-                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex);
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthCheck));
+                return this.Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex);
             }
         }
 
@@ -84,29 +87,33 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
         {
             // Check required parameters.
             if (hcm.Equals(HealthCheck.Default))
-                return Request.CreateResponse(HttpStatusCode.BadRequest);
-            if (null == _operations)
-                return Request.CreateResponse(HttpStatusCode.InternalServerError);
+            {
+                return this.Request.CreateResponse(HttpStatusCode.BadRequest);
+            }
+            if (null == this._operations)
+            {
+                return this.Request.CreateResponse(HttpStatusCode.InternalServerError);
+            }
 
             try
             {
-                ServiceEventSource.Current.ServiceRequestStart(nameof(PostHealthCheck));
+                ServiceEventSource.Current.ServiceRequestStart(nameof(this.PostHealthCheck));
 
                 // Call the operations class to add the health check.
-                await _operations.AddHealthCheckAsync(hcm);
+                await this._operations.AddHealthCheckAsync(hcm);
 
-                ServiceEventSource.Current.ServiceRequestStop(nameof(PostHealthCheck));
-                return Request.CreateResponse(HttpStatusCode.OK);
+                ServiceEventSource.Current.ServiceRequestStop(nameof(this.PostHealthCheck));
+                return this.Request.CreateResponse(HttpStatusCode.OK);
             }
-            catch(ArgumentException ex)
+            catch (ArgumentException ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(PostHealthCheck));
-                return Request.CreateResponse(HttpStatusCode.BadRequest);
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.PostHealthCheck));
+                return this.Request.CreateResponse(HttpStatusCode.BadRequest);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(PostHealthCheck));
-                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex);
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.PostHealthCheck));
+                return this.Request.CreateErrorResponse(HttpStatusCode.InternalServerError, ex);
             }
         }
 

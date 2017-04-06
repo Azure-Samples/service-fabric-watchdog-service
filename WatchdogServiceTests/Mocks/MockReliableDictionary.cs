@@ -1,22 +1,20 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="WatchdogController.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License (MIT).
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using Microsoft.ServiceFabric.Data.Collections;
-using Microsoft.ServiceFabric.Data.Notifications;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace WatchdogServiceTests.Mocks
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.ServiceFabric.Data;
+    using Microsoft.ServiceFabric.Data.Collections;
+    using Microsoft.ServiceFabric.Data.Notifications;
+
     public class MockReliableDictionary<TKey, TValue> : IReliableDictionary<TKey, TValue>
         where TKey : IComparable<TKey>, IEquatable<TKey>
     {
@@ -28,10 +26,7 @@ namespace WatchdogServiceTests.Mocks
 
         public Func<IReliableDictionary<TKey, TValue>, NotifyDictionaryRebuildEventArgs<TKey, TValue>, Task> RebuildNotificationAsyncCallback
         {
-            set
-            {
-                throw new NotImplementedException();
-            }
+            set { throw new NotImplementedException(); }
         }
 
         public Task AddAsync(ITransaction tx, TKey key, TValue value)
@@ -211,11 +206,6 @@ namespace WatchdogServiceTests.Mocks
             return Task.FromResult(this.dictionary.TryUpdate(key, newValue, comparisonValue));
         }
 
-        public Task<long> GetCountAsync()
-        {
-            return Task.FromResult((long)this.dictionary.Count);
-        }
-
         public Task<IAsyncEnumerable<KeyValuePair<TKey, TValue>>> CreateEnumerableAsync(ITransaction txn)
         {
             return Task.FromResult<IAsyncEnumerable<KeyValuePair<TKey, TValue>>>(new MockAsyncEnumerable<KeyValuePair<TKey, TValue>>(this.dictionary));
@@ -223,23 +213,31 @@ namespace WatchdogServiceTests.Mocks
 
         public Task<IAsyncEnumerable<KeyValuePair<TKey, TValue>>> CreateEnumerableAsync(ITransaction txn, EnumerationMode enumerationMode)
         {
-            return Task.FromResult<IAsyncEnumerable<KeyValuePair<TKey, TValue>>>(new MockAsyncEnumerable<KeyValuePair<TKey, TValue>>(
-                enumerationMode == EnumerationMode.Unordered
-                    ? (IEnumerable<KeyValuePair<TKey, TValue>>)this.dictionary
-                    : this.dictionary.OrderBy(x => x.Key)));
+            return Task.FromResult<IAsyncEnumerable<KeyValuePair<TKey, TValue>>>(
+                new MockAsyncEnumerable<KeyValuePair<TKey, TValue>>(
+                    enumerationMode == EnumerationMode.Unordered
+                        ? (IEnumerable<KeyValuePair<TKey, TValue>>) this.dictionary
+                        : this.dictionary.OrderBy(x => x.Key)));
         }
 
-        public Task<IAsyncEnumerable<KeyValuePair<TKey, TValue>>> CreateEnumerableAsync(ITransaction txn, Func<TKey, bool> filter, EnumerationMode enumerationMode)
+        public Task<IAsyncEnumerable<KeyValuePair<TKey, TValue>>> CreateEnumerableAsync(
+            ITransaction txn, Func<TKey, bool> filter, EnumerationMode enumerationMode)
         {
-            return Task.FromResult<IAsyncEnumerable<KeyValuePair<TKey, TValue>>>(new MockAsyncEnumerable<KeyValuePair<TKey, TValue>>(
-                enumerationMode == EnumerationMode.Unordered
-                    ? this.dictionary.Where(x => filter(x.Key))
-                    : this.dictionary.Where(x => filter(x.Key)).OrderBy(x => x.Key)));
+            return Task.FromResult<IAsyncEnumerable<KeyValuePair<TKey, TValue>>>(
+                new MockAsyncEnumerable<KeyValuePair<TKey, TValue>>(
+                    enumerationMode == EnumerationMode.Unordered
+                        ? this.dictionary.Where(x => filter(x.Key))
+                        : this.dictionary.Where(x => filter(x.Key)).OrderBy(x => x.Key)));
         }
 
         public Task<long> GetCountAsync(ITransaction tx)
         {
-            return Task.FromResult((long)this.dictionary.Count);
+            return Task.FromResult((long) this.dictionary.Count);
+        }
+
+        public Task<long> GetCountAsync()
+        {
+            return Task.FromResult((long) this.dictionary.Count);
         }
     }
 }

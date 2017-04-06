@@ -1,24 +1,23 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="HealthCheckSerializer.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using System.IO;
-using Bond;
-using Bond.Protocols;
-using Bond.IO.Unsafe;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Models
 {
+    using System.IO;
+    using Bond;
+    using Bond.IO.Unsafe;
+    using Bond.Protocols;
+    using Microsoft.ServiceFabric.Data;
+
     /// <summary>
     /// Custom serializer for HealthCheck instances.
     /// </summary>
     public sealed class HealthCheckSerializer : IStateSerializer<HealthCheck>
     {
-        private readonly static Serializer<CompactBinaryWriter<OutputBuffer>> Serializer;
-        private readonly static Deserializer<CompactBinaryReader<InputBuffer>> Deserializer;
+        private static readonly Serializer<CompactBinaryWriter<OutputBuffer>> Serializer;
+        private static readonly Deserializer<CompactBinaryReader<InputBuffer>> Deserializer;
 
         /// <summary>
         /// HealthCheckSerializer static constructor. Initialized serializers before the first call.
@@ -35,7 +34,6 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// </summary>
         public HealthCheckSerializer()
         {
-
         }
 
         /// <summary>
@@ -48,14 +46,14 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
             int count = binaryReader.ReadInt32();
             byte[] bytes = binaryReader.ReadBytes(count);
 
-            var input = new InputBuffer(bytes);
-            var reader = new CompactBinaryReader<InputBuffer>(input);
+            InputBuffer input = new InputBuffer(bytes);
+            CompactBinaryReader<InputBuffer> reader = new CompactBinaryReader<InputBuffer>(input);
             return Deserializer.Deserialize<HealthCheck>(reader);
         }
 
         public HealthCheck Read(HealthCheck baseValue, BinaryReader binaryReader)
         {
-            return Read(binaryReader);
+            return this.Read(binaryReader);
         }
 
         /// <summary>
@@ -65,8 +63,8 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// <param name="binaryReader">BinaryReader instance to serialize into.</param>
         public void Write(HealthCheck value, BinaryWriter binaryWriter)
         {
-            var output = new OutputBuffer();
-            var writer = new CompactBinaryWriter<OutputBuffer>(output);
+            OutputBuffer output = new OutputBuffer();
+            CompactBinaryWriter<OutputBuffer> writer = new CompactBinaryWriter<OutputBuffer>(output);
             Serializer.Serialize(value, writer);
 
             binaryWriter.Write(output.Data.Count);
@@ -75,7 +73,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
 
         public void Write(HealthCheck baseValue, HealthCheck targetValue, BinaryWriter binaryWriter)
         {
-            Write(targetValue, binaryWriter);
+            this.Write(targetValue, binaryWriter);
         }
     }
 }

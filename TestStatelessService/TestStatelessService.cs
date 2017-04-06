@@ -1,24 +1,21 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="TestStatelessService.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using System.Collections.Generic;
-using System.Fabric;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.ServiceFabric.Services.Communication.Runtime;
-using Microsoft.ServiceFabric.Services.Runtime;
-using System.Net.Http;
-using System.Net;
-using System.Text;
-using System.Fabric.Description;
-using System.Collections.ObjectModel;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace TestStatelessService
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Fabric;
+    using System.Net;
+    using System.Net.Http;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.ServiceFabric.Services.Communication.Runtime;
+    using Microsoft.ServiceFabric.Services.Runtime;
+
     /// <summary>
     /// The FabricRuntime creates an instance of this class for each service type instance. 
     /// </summary>
@@ -37,8 +34,33 @@ namespace TestStatelessService
         {
             return new ServiceInstanceListener[]
             {
-                new ServiceInstanceListener(serviceContext => new OwinCommunicationListener(Startup.ConfigureApp, serviceContext, ServiceEventSource.Current, "ServiceEndpoint"))
+                new ServiceInstanceListener(
+                    serviceContext => new OwinCommunicationListener(Startup.ConfigureApp, serviceContext, ServiceEventSource.Current, "ServiceEndpoint"))
             };
+        }
+
+        protected override async Task RunAsync(CancellationToken cancellationToken)
+        {
+            // Register the health check and metrics with the watchdog.
+            bool healthRegistered = await this.RegisterHealthCheckAsync(cancellationToken);
+            bool metricsRegistered = await this.RegisterMetricsAsync(cancellationToken);
+
+            while (true)
+            {
+                // Report some fake metrics to Service Fabric.
+                this.ReportFakeMetrics(cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+
+                // Check that registration was successful. Could also query the watchdog for additional safety.
+                if (false == healthRegistered)
+                {
+                    healthRegistered = await this.RegisterHealthCheckAsync(cancellationToken);
+                }
+                if (false == metricsRegistered)
+                {
+                    metricsRegistered = await this.RegisterMetricsAsync(cancellationToken);
+                }
+            }
         }
 
         /// <summary>
@@ -50,31 +72,34 @@ namespace TestStatelessService
         {
             bool result = false;
             HttpClient client = new HttpClient();
-            string jsonTemplate = "{{\"name\":\"UniqueHealthCheckName\",\"serviceName\": \"{0}\",\"partition\": \"{1}\",\"frequency\": \"{2}\",\"suffixPath\": \"api/values\",\"method\": {{ \"Method\": \"GET\" }}, \"expectedDuration\": \"00:00:00.2000000\",\"maximumDuration\": \"00:00:05\" }}";
-            string json = string.Format(jsonTemplate, Context.ServiceName, Context.PartitionId, TimeSpan.FromMinutes(2));
+            string jsonTemplate =
+                "{{\"name\":\"UniqueHealthCheckName\",\"serviceName\": \"{0}\",\"partition\": \"{1}\",\"frequency\": \"{2}\",\"suffixPath\": \"api/values\",\"method\": {{ \"Method\": \"GET\" }}, \"expectedDuration\": \"00:00:00.2000000\",\"maximumDuration\": \"00:00:05\" }}";
+            string json = string.Format(jsonTemplate, this.Context.ServiceName, this.Context.PartitionId, TimeSpan.FromMinutes(2));
 
             // Called from RunAsync, don't let an exception out so the service will start, but log the exception because the service won't work.
             try
             {
-
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:19081/Watchdog/WatchdogService/healthcheck");
                 request.Content = new StringContent(json, Encoding.Default, "application/json");
 
-                var msg = await client.SendAsync(request);
+                HttpResponseMessage msg = await client.SendAsync(request);
 
                 // Log a success or error message based on the returned status code.
                 if (HttpStatusCode.OK == msg.StatusCode)
                 {
-                    ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                    ServiceEventSource.Current.Trace(nameof(this.RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
                     result = true;
                 }
                 else
                 {
-                    ServiceEventSource.Current.Error(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
-                    ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), json ?? "<null JSON>");
+                    ServiceEventSource.Current.Error(nameof(this.RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                    ServiceEventSource.Current.Trace(nameof(this.RegisterHealthCheckAsync), json ?? "<null JSON>");
                 }
             }
-            catch(Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}.");
+            }
 
             return result;
         }
@@ -103,22 +128,22 @@ namespace TestStatelessService
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, uri);
                 request.Content = new StringContent("[\"RPS\", \"Failures\", \"Latency\", \"ItemCount\"]", Encoding.Default, "application/json");
 
-                var msg = await httpClient.SendAsync(request);
+                HttpResponseMessage msg = await httpClient.SendAsync(request);
 
                 // Log a success or error message based on the returned status code.
                 if (HttpStatusCode.OK == msg.StatusCode)
                 {
-                    ServiceEventSource.Current.Trace(nameof(RegisterMetricsAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                    ServiceEventSource.Current.Trace(nameof(this.RegisterMetricsAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
                     result = true;
                 }
                 else
                 {
-                    ServiceEventSource.Current.Error(nameof(RegisterMetricsAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                    ServiceEventSource.Current.Error(nameof(this.RegisterMetricsAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
                 }
             }
             catch (Exception ex)
             {
-                ServiceEventSource.Current.ServiceMessage(Context, ex.Message);
+                ServiceEventSource.Current.ServiceMessage(this.Context, ex.Message);
             }
 
             return result;
@@ -134,7 +159,8 @@ namespace TestStatelessService
             Random rnd = new Random(DateTime.Now.Millisecond);
 
             // Load the list of current metric values to report.
-            List<LoadMetric> metrics = new List<LoadMetric>() {
+            List<LoadMetric> metrics = new List<LoadMetric>()
+            {
                 new LoadMetric("RPS", rnd.Next(3000)),
                 new LoadMetric("Failures", rnd.Next(0, 3)),
                 new LoadMetric("Latency", rnd.Next(10, 500)),
@@ -142,27 +168,7 @@ namespace TestStatelessService
             };
 
             // Report the metrics to Service Fabric.
-            Partition.ReportLoad(metrics);
-        }
-
-        protected override async Task RunAsync(CancellationToken cancellationToken)
-        {
-            // Register the health check and metrics with the watchdog.
-            bool healthRegistered = await RegisterHealthCheckAsync(cancellationToken);
-            bool metricsRegistered = await RegisterMetricsAsync(cancellationToken);
-
-            while (true)
-            {
-                // Report some fake metrics to Service Fabric.
-                ReportFakeMetrics(cancellationToken);
-                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
-
-                // Check that registration was successful. Could also query the watchdog for additional safety.
-                if (false == healthRegistered)
-                    healthRegistered = await RegisterHealthCheckAsync(cancellationToken);
-                if (false == metricsRegistered)
-                    metricsRegistered = await RegisterMetricsAsync(cancellationToken);
-            }
+            this.Partition.ReportLoad(metrics);
         }
     }
 }

@@ -1,19 +1,14 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="BondTypeAliasConverter_UnitTest.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using Bond;
-using Bond.Protocols;
-using Bond.IO.Safe;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.ServiceFabric.WatchdogService.Models;
-using System.IO;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace WatchdogServiceTests
 {
+    using System;
+    using Microsoft.ServiceFabric.WatchdogService.Models;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+
     [TestClass]
     public class BondTypeAliasConverter_UnitTest
     {

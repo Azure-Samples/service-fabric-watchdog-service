@@ -1,20 +1,14 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="IWatchdogService.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using System;
-using System.Collections.Generic;
-using System.Fabric;
-using System.Fabric.Description;
-using System.Fabric.Health;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Interfaces
 {
+    using System.Fabric;
+    using System.Fabric.Description;
+    using Microsoft.ServiceFabric.Data;
+
     /// <summary>
     /// IWatchdogService interface.
     /// </summary>
@@ -24,11 +18,6 @@ namespace Microsoft.ServiceFabric.WatchdogService.Interfaces
         /// Service Fabric client instance with user level privledges.
         /// </summary>
         FabricClient Client { get; }
-
-        /// <summary>
-        /// Refreshes the FabricClient instance.
-        /// </summary>
-        void RefreshFabricClient();
 
         /// <summary>
         /// Gets the Service Fabric StateManager instance.
@@ -54,5 +43,10 @@ namespace Microsoft.ServiceFabric.WatchdogService.Interfaces
         /// Service Fabric configuration settings.
         /// </summary>
         ConfigurationSettings Settings { get; }
+
+        /// <summary>
+        /// Refreshes the FabricClient instance.
+        /// </summary>
+        void RefreshFabricClient();
     }
 }

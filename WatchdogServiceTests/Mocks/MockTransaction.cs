@@ -1,15 +1,14 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="MockTransaction.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using System;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace WatchdogServiceTests.Mocks
 {
+    using System;
+    using System.Threading.Tasks;
+    using Microsoft.ServiceFabric.Data;
+
     public class MockTransaction : ITransaction
     {
         public Task CommitAsync()
@@ -28,10 +27,7 @@ namespace WatchdogServiceTests.Mocks
 
         public long CommitSequenceNumber
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
         }
 
         public void Dispose()

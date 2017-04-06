@@ -1,14 +1,13 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="BondTypeAliasConverter.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using System.Net.Http;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Models
 {
+    using System;
+    using System.Net.Http;
+
     /// <summary>
     /// Bond type alias converter.
     /// </summary>
@@ -25,12 +24,14 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         public static Guid Convert(ArraySegment<byte> value, Guid unused)
         {
             if (null == value)
+            {
                 throw new ArgumentNullException(nameof(value));
+            }
 
             byte[] bytes = new byte[16];
-            for(int i=0; i < value.Count; i++)
+            for (int i = 0; i < value.Count; i++)
             {
-                bytes[i] = value.Array[i+value.Offset];
+                bytes[i] = value.Array[i + value.Offset];
             }
 
             return new Guid(bytes);
@@ -48,6 +49,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         }
 
         #endregion
+
         #region TimeSpan converter
 
         /// <summary>
@@ -106,8 +108,10 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         public static DateTimeOffset? Convert(long value, DateTimeOffset? unused)
         {
             if (0 == value)
+            {
                 return null;
-            
+            }
+
             return new DateTimeOffset(value, TimeSpan.Zero);
         }
 
@@ -119,9 +123,13 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         public static long Convert(DateTimeOffset? value, long unused)
         {
             if (value.HasValue)
+            {
                 return value.Value.UtcTicks;
+            }
             else
+            {
                 return 0L;
+            }
         }
 
         #endregion
@@ -139,6 +147,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         }
 
         #endregion
+
         #region HttpMethod converter
 
         public static HttpMethod Convert(string value, HttpMethod unused)

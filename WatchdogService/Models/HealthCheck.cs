@@ -1,20 +1,19 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="HealthCheck.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using Bond;
-using Bond.IO;
-using Bond.Tag;
-using System.Net.Http;
-using System.Net;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Models
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Net;
+    using System.Net.Http;
+    using Bond;
+    using Bond.IO;
+    using Bond.Tag;
+    using Newtonsoft.Json;
+
     /// <summary>
     /// HealthCheck structure definition.
     /// </summary>
@@ -179,36 +178,47 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// <param name="failureCount">Number of times this request has consecutively failed.</param>
         /// <param name="resultCode">Result code returned from the execution of another.</param>
         /// <param name="duration">Duration of the last call.</param>
-        public HealthCheck(string name,
-                           Uri serviceName,
-                           Guid partition,
-                           string suffixPath,
-                           string endpoint = null,
-                           string content = null,
-                           string mediaType = null,
-                           HttpMethod method = default(HttpMethod),
-                           TimeSpan frequency = default(TimeSpan),
-                           TimeSpan expected = default(TimeSpan),
-                           TimeSpan maximum = default(TimeSpan),
-                           Dictionary<string, string> headers = null,
-                           List<int> errorStatusCodes = null,
-                           List<int> warningStatusCodes = null,
-                           DateTimeOffset lastAttempt = default(DateTimeOffset), 
-                           long failureCount = default(long),
-                           HttpStatusCode resultCode = default(HttpStatusCode),
-                           long duration = default(long))
+        public HealthCheck(
+            string name,
+            Uri serviceName,
+            Guid partition,
+            string suffixPath,
+            string endpoint = null,
+            string content = null,
+            string mediaType = null,
+            HttpMethod method = default(HttpMethod),
+            TimeSpan frequency = default(TimeSpan),
+            TimeSpan expected = default(TimeSpan),
+            TimeSpan maximum = default(TimeSpan),
+            Dictionary<string, string> headers = null,
+            List<int> errorStatusCodes = null,
+            List<int> warningStatusCodes = null,
+            DateTimeOffset lastAttempt = default(DateTimeOffset),
+            long failureCount = default(long),
+            HttpStatusCode resultCode = default(HttpStatusCode),
+            long duration = default(long))
         {
             // Check required parameters.
             if (string.IsNullOrWhiteSpace(name))
+            {
                 throw new ArgumentException(nameof(name));
+            }
             if (null == serviceName)
+            {
                 throw new ArgumentNullException(nameof(serviceName));
+            }
             if ((false == string.IsNullOrWhiteSpace(content)) && (string.IsNullOrWhiteSpace(mediaType)))
+            {
                 throw new ArgumentException("mediaType must be specified if content is provided.", nameof(mediaType));
+            }
             if (string.IsNullOrWhiteSpace(suffixPath))
+            {
                 throw new ArgumentException(nameof(suffixPath));
+            }
             if (default(HttpMethod) == method)
+            {
                 method = HttpMethod.Get;
+            }
 
             this.Name = name;
             this.ServiceName = serviceName;
@@ -270,11 +280,13 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         public override bool Equals(object obj)
         {
             if (null == obj)
+            {
                 return false;
+            }
 
             if (obj is HealthCheck)
             {
-                return this.Equals((HealthCheck)obj);
+                return this.Equals((HealthCheck) obj);
             }
 
             return false;
@@ -285,7 +297,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// </summary>
         /// <param name="other">HealthCheck instance to compare.</param>
         /// <returns>True if they are equal, otherwise false.</returns>
-        public static bool operator == (HealthCheck hc1, HealthCheck hc2)
+        public static bool operator ==(HealthCheck hc1, HealthCheck hc2)
         {
             return hc1.Equals(hc2);
         }
@@ -295,7 +307,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// </summary>
         /// <param name="other">HealthCheck instance to compare.</param>
         /// <returns>True if not equals, otherwise false.</returns>
-        public static bool operator != (HealthCheck hc1, HealthCheck hc2)
+        public static bool operator !=(HealthCheck hc1, HealthCheck hc2)
         {
             return !hc1.Equals(hc2);
         }
@@ -315,9 +327,13 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
             get
             {
                 if (this.ServiceName.IsAbsoluteUri)
+                {
                     return $"{this.ServiceName.AbsolutePath}/{this.Partition}";
+                }
                 else
+                {
                     return null;
+                }
             }
         }
 
@@ -346,7 +362,10 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
                 this.Headers,
                 this.ErrorStatusCodes,
                 this.WarningStatusCodes,
-                update, failureCount, result, duration);
+                update,
+                failureCount,
+                result,
+                duration);
         }
 
         #endregion
@@ -360,26 +379,80 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// <returns>True if they are equal, otherwise false.</returns>
         public bool Equals(HealthCheck other)
         {
-            if (this.Content != other.Content) return false;
-            if (this.MediaType != other.MediaType) return false;
-            if (this.Endpoint != other.Endpoint) return false;
-            if (this.ExpectedDuration != other.ExpectedDuration) return false;
-            if (this.Frequency != other.Frequency) return false;
-            if (this.Method != other.Method) return false;
-            if (this.MaximumDuration != other.MaximumDuration) return false;
-            if (this.Name != other.Name) return false;
-            if (this.Partition != other.Partition) return false;
-            if (this.ServiceName != other.ServiceName) return false;
-            if (this.SuffixPath != other.SuffixPath) return false;
-            if (this.LastAttempt != other.LastAttempt) return false;
-            if (this.FailureCount != other.FailureCount) return false;
-            if (this.ResultCode != other.ResultCode) return false;
-            if (this.Duration != other.Duration) return false;
+            if (this.Content != other.Content)
+            {
+                return false;
+            }
+            if (this.MediaType != other.MediaType)
+            {
+                return false;
+            }
+            if (this.Endpoint != other.Endpoint)
+            {
+                return false;
+            }
+            if (this.ExpectedDuration != other.ExpectedDuration)
+            {
+                return false;
+            }
+            if (this.Frequency != other.Frequency)
+            {
+                return false;
+            }
+            if (this.Method != other.Method)
+            {
+                return false;
+            }
+            if (this.MaximumDuration != other.MaximumDuration)
+            {
+                return false;
+            }
+            if (this.Name != other.Name)
+            {
+                return false;
+            }
+            if (this.Partition != other.Partition)
+            {
+                return false;
+            }
+            if (this.ServiceName != other.ServiceName)
+            {
+                return false;
+            }
+            if (this.SuffixPath != other.SuffixPath)
+            {
+                return false;
+            }
+            if (this.LastAttempt != other.LastAttempt)
+            {
+                return false;
+            }
+            if (this.FailureCount != other.FailureCount)
+            {
+                return false;
+            }
+            if (this.ResultCode != other.ResultCode)
+            {
+                return false;
+            }
+            if (this.Duration != other.Duration)
+            {
+                return false;
+            }
 
-            if (false == Extensions.ListEquals(this.WarningStatusCodes, other.WarningStatusCodes)) return false;
-            if (false == Extensions.ListEquals(this.ErrorStatusCodes, other.ErrorStatusCodes)) return false;
+            if (false == Extensions.ListEquals(this.WarningStatusCodes, other.WarningStatusCodes))
+            {
+                return false;
+            }
+            if (false == Extensions.ListEquals(this.ErrorStatusCodes, other.ErrorStatusCodes))
+            {
+                return false;
+            }
 
-            if (false == Extensions.DictionaryEquals<string, string>(this.Headers, other.Headers)) return false;
+            if (false == Extensions.DictionaryEquals<string, string>(this.Headers, other.Headers))
+            {
+                return false;
+            }
 
             return true;
         }

@@ -1,15 +1,14 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="WatchdogScheduledItem.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Bond;
-using Bond.IO;
-using System;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService.Models
 {
+    using System;
+    using Bond;
+    using Bond.IO;
+
     /// <summary>
     /// WatchdogScheduledItem structure used to hold the items scheduled to run.
     /// </summary>
@@ -40,11 +39,13 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// <param name="time">Time the item is scheduled to run.</param>
         /// <param name="key">Key to retrieve the item.</param>
         /// <param name="uri">Uri </param>
-        public WatchdogScheduledItem(DateTimeOffset time, string key)                                
+        public WatchdogScheduledItem(DateTimeOffset time, string key)
         {
             // Check required parameters.
             if (string.IsNullOrWhiteSpace(key))
+            {
                 throw new ArgumentNullException(nameof(key));
+            }
 
             this.ExecutionTicks = time.UtcTicks;
             this.Key = key;
@@ -61,8 +62,14 @@ namespace Microsoft.ServiceFabric.WatchdogService.Models
         /// <returns>True if they are equal, otherwise false.</returns>
         public bool Equals(WatchdogScheduledItem other)
         {
-            if (this.ExecutionTicks != other.ExecutionTicks) return false;
-            if (this.Key != other.Key) return false;
+            if (this.ExecutionTicks != other.ExecutionTicks)
+            {
+                return false;
+            }
+            if (this.Key != other.Key)
+            {
+                return false;
+            }
 
             return true;
         }

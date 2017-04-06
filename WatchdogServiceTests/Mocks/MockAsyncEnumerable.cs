@@ -1,16 +1,15 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="MockAsyncEnumerator.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace WatchdogServiceTests.Mocks
 {
+    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.ServiceFabric.Data;
+
     /// <summary>
     /// Simple wrapper for a synchronous IEnumerable of T.
     /// </summary>
@@ -46,10 +45,7 @@ namespace WatchdogServiceTests.Mocks
 
         public T Current
         {
-            get
-            {
-                return this.enumerator.Current;
-            }
+            get { return this.enumerator.Current; }
         }
 
         public void Dispose()

@@ -1,21 +1,45 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="MockCodePackageActivationContext.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Fabric;
-using System.Fabric.Description;
-using System.Fabric.Health;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace WatchdogServiceTests.Mocks
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Fabric;
+    using System.Fabric.Description;
+    using System.Fabric.Health;
 
     public class MockCodePackageActivationContext : ICodePackageActivationContext
     {
+        public MockCodePackageActivationContext(
+            string ApplicationName,
+            string ApplicationTypeName,
+            string CodePackageName,
+            string CodePackageVersion,
+            string Context,
+            string LogDirectory,
+            string TempDirectory,
+            string WorkDirectory,
+            string ServiceManifestName,
+            string ServiceManifestVersion)
+        {
+            this.ApplicationName = ApplicationName;
+            this.ApplicationTypeName = ApplicationTypeName;
+            this.CodePackageName = CodePackageName;
+            this.CodePackageVersion = CodePackageVersion;
+            this.ContextId = Context;
+            this.LogDirectory = LogDirectory;
+            this.TempDirectory = TempDirectory;
+            this.WorkDirectory = WorkDirectory;
+        }
+
+        private string ServiceManifetName { get; set; }
+
+        private string ServiceManifestVersion { get; set; }
+
         public string ApplicationName { get; private set; }
 
         public string ApplicationTypeName { get; private set; }
@@ -31,19 +55,24 @@ namespace WatchdogServiceTests.Mocks
         public string TempDirectory { get; private set; }
 
         public string WorkDirectory { get; private set; }
-        private string ServiceManifetName { get; set; }
-
-        private string ServiceManifestVersion { get; set; }
 
 
         public event EventHandler<PackageAddedEventArgs<CodePackage>> CodePackageAddedEvent;
+
         public event EventHandler<PackageModifiedEventArgs<CodePackage>> CodePackageModifiedEvent;
+
         public event EventHandler<PackageRemovedEventArgs<CodePackage>> CodePackageRemovedEvent;
+
         public event EventHandler<PackageAddedEventArgs<ConfigurationPackage>> ConfigurationPackageAddedEvent;
+
         public event EventHandler<PackageModifiedEventArgs<ConfigurationPackage>> ConfigurationPackageModifiedEvent;
+
         public event EventHandler<PackageRemovedEventArgs<ConfigurationPackage>> ConfigurationPackageRemovedEvent;
+
         public event EventHandler<PackageAddedEventArgs<DataPackage>> DataPackageAddedEvent;
+
         public event EventHandler<PackageModifiedEventArgs<DataPackage>> DataPackageModifiedEvent;
+
         public event EventHandler<PackageRemovedEventArgs<DataPackage>> DataPackageRemovedEvent;
 
         public ApplicationPrincipalsDescription GetApplicationPrincipals()
@@ -53,7 +82,7 @@ namespace WatchdogServiceTests.Mocks
 
         public IList<string> GetCodePackageNames()
         {
-            return new List<string>() { this.CodePackageName };
+            return new List<string>() {this.CodePackageName};
         }
 
         public CodePackage GetCodePackageObject(string packageName)
@@ -63,7 +92,7 @@ namespace WatchdogServiceTests.Mocks
 
         public IList<string> GetConfigurationPackageNames()
         {
-            return new List<string>() { "" };
+            return new List<string>() {""};
         }
 
         public ConfigurationPackage GetConfigurationPackageObject(string packageName)
@@ -73,7 +102,7 @@ namespace WatchdogServiceTests.Mocks
 
         public IList<string> GetDataPackageNames()
         {
-            return new List<string>() { "" };
+            return new List<string>() {""};
         }
 
         public DataPackage GetDataPackageObject(string packageName)
@@ -126,38 +155,13 @@ namespace WatchdogServiceTests.Mocks
             throw new NotImplementedException();
         }
 
-
-
-        public MockCodePackageActivationContext(
-            string ApplicationName,
-            string ApplicationTypeName,
-            string CodePackageName,
-            string CodePackageVersion,
-            string Context,
-            string LogDirectory,
-            string TempDirectory,
-            string WorkDirectory,
-            string ServiceManifestName,
-            string ServiceManifestVersion)
-        {
-
-            this.ApplicationName = ApplicationName;
-            this.ApplicationTypeName = ApplicationTypeName;
-            this.CodePackageName = CodePackageName;
-            this.CodePackageVersion = CodePackageVersion;
-            this.ContextId = Context;
-            this.LogDirectory = LogDirectory;
-            this.TempDirectory = TempDirectory;
-            this.WorkDirectory = WorkDirectory;
-        }
-
-
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!this.disposedValue)
             {
                 if (disposing)
                 {
@@ -167,7 +171,7 @@ namespace WatchdogServiceTests.Mocks
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
 
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
 
@@ -175,10 +179,11 @@ namespace WatchdogServiceTests.Mocks
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
+            this.Dispose(true);
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
+
         #endregion
     }
 }

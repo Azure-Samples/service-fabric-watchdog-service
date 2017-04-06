@@ -1,27 +1,26 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="WatchdogService.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using Microsoft.ServiceFabric.Services.Communication.Runtime;
-using Microsoft.ServiceFabric.Services.Runtime;
-using Microsoft.ServiceFabric.WatchdogService.Interfaces;
-using Microsoft.ServiceFabric.WatchdogService.Models;
-using System;
-using System.Collections.Generic;
-using System.Fabric;
-using System.Fabric.Description;
-using System.Fabric.Health;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace Microsoft.ServiceFabric.WatchdogService
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Fabric;
+    using System.Fabric.Description;
+    using System.Fabric.Health;
+    using System.Net;
+    using System.Net.Http;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.ServiceFabric.Data;
+    using Microsoft.ServiceFabric.Services.Communication.Runtime;
+    using Microsoft.ServiceFabric.Services.Runtime;
+    using Microsoft.ServiceFabric.WatchdogService.Interfaces;
+    using Microsoft.ServiceFabric.WatchdogService.Models;
+
     /// <summary>
     /// The FabricRuntime creates an instance of this class for each service type instance. 
     /// </summary>
@@ -30,9 +29,28 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <summary>
         /// Constant values. The metrics names must match the values in the ServiceManifest.
         /// </summary>
-        const string ObservedMetricCountMetricName = "ObservedMetricCount";
-        const string HealthCheckCountMetricName = "HealthCheckCount";
-        const string WatchdogConfigSectionName = "Watchdog";
+        private const string ObservedMetricCountMetricName = "ObservedMetricCount";
+
+        private const string HealthCheckCountMetricName = "HealthCheckCount";
+        private const string WatchdogConfigSectionName = "Watchdog";
+
+        #region Communication Listeners
+
+        /// <summary>
+        /// Optional override to create listeners (like TCP, HTTP) for this service instance.
+        /// </summary>
+        /// <returns>The collection of listeners.</returns>
+        protected override IEnumerable<ServiceReplicaListener> CreateServiceReplicaListeners()
+        {
+            ServiceEventSource.Current.ServiceMessage(this.Context, "CreateServiceReplicaListeners called.");
+
+            return new ServiceReplicaListener[]
+            {
+                new ServiceReplicaListener(serviceContext => new OwinCommunicationListener(this, serviceContext, "ServiceEndpoint", "api"))
+            };
+        }
+
+        #endregion
 
         #region Members
 
@@ -98,17 +116,17 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <summary>
         /// HealthCheckController operations class instance.
         /// </summary>
-        public HealthCheckOperations HealthCheckOperations => _healthCheckOperations;
+        public HealthCheckOperations HealthCheckOperations => this._healthCheckOperations;
 
         /// <summary>
         /// MetricsController operations class instance.
         /// </summary>
-        public MetricsOperations MetricsOperations => _metricsOperations;
+        public MetricsOperations MetricsOperations => this._metricsOperations;
 
         /// <summary>
         /// Configuration settings.
         /// </summary>
-        public ConfigurationSettings Settings => _settings;
+        public ConfigurationSettings Settings => this._settings;
 
         #endregion
 
@@ -135,24 +153,6 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
         #endregion
 
-        #region Communication Listeners
-
-        /// <summary>
-        /// Optional override to create listeners (like TCP, HTTP) for this service instance.
-        /// </summary>
-        /// <returns>The collection of listeners.</returns>
-        protected override IEnumerable<ServiceReplicaListener> CreateServiceReplicaListeners()
-        {
-            ServiceEventSource.Current.ServiceMessage(Context, "CreateServiceReplicaListeners called.");
-
-            return new ServiceReplicaListener[]
-            {
-                new ServiceReplicaListener(serviceContext => new OwinCommunicationListener(this, serviceContext, "ServiceEndpoint", "api"))
-            };
-        }
-
-        #endregion
-
         #region Private Methods
 
         /// <summary>
@@ -169,20 +169,23 @@ namespace Microsoft.ServiceFabric.WatchdogService
             {
                 // Use the reverse proxy to locate the service endpoint.
                 string postUrl = "http://localhost:19081/Watchdog/WatchdogService/healthcheck";
-                HealthCheck hc = new HealthCheck("Watchdog Health Check", Context.ServiceName, Context.PartitionId, "watchdog/health");
-                var msg = await client.PostAsJsonAsync(postUrl, hc);
+                HealthCheck hc = new HealthCheck("Watchdog Health Check", this.Context.ServiceName, this.Context.PartitionId, "watchdog/health");
+                HttpResponseMessage msg = await client.PostAsJsonAsync(postUrl, hc);
 
                 // Log a success or error message based on the returned status code.
                 if (HttpStatusCode.OK == msg.StatusCode)
                 {
-                    ServiceEventSource.Current.Trace(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                    ServiceEventSource.Current.Trace(nameof(this.RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
                 }
                 else
                 {
-                    ServiceEventSource.Current.Error(nameof(RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
+                    ServiceEventSource.Current.Error(nameof(this.RegisterHealthCheckAsync), Enum.GetName(typeof(HttpStatusCode), msg.StatusCode));
                 }
             }
-            catch (Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}.");
+            }
         }
 
         /// <summary>
@@ -194,11 +197,17 @@ namespace Microsoft.ServiceFabric.WatchdogService
         private HealthState CompareHealthState(HealthState current, HealthState proposed)
         {
             if ((HealthState.Ok == current) && ((HealthState.Warning == proposed) || (HealthState.Error == proposed)))
+            {
                 return proposed;
+            }
             if ((HealthState.Warning == current) && (HealthState.Error == proposed))
+            {
                 return proposed;
+            }
             if ((HealthState.Invalid == current) || (HealthState.Unknown == current))
+            {
                 return proposed;
+            }
 
             return current;
         }
@@ -212,39 +221,42 @@ namespace Microsoft.ServiceFabric.WatchdogService
             try
             {
                 // Collect the health information from the local service state.
-                TimeSpan interval = HealthReportInterval.Add(TimeSpan.FromSeconds(30));
+                TimeSpan interval = this.HealthReportInterval.Add(TimeSpan.FromSeconds(30));
                 StringBuilder sb = new StringBuilder();
-                HealthState hs = CheckWatchdogHealth(sb);
+                HealthState hs = this.CheckWatchdogHealth(sb);
 
                 // Issue a health report for the watchdog service.
-                HealthInformation hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "WatchdogServiceHealth", hs)
+                HealthInformation hi = new HealthInformation(this.Context.ServiceName.AbsoluteUri, "WatchdogServiceHealth", hs)
                 {
                     TimeToLive = interval,
                     Description = sb.ToString(),
                     RemoveWhenExpired = false,
                     SequenceNumber = HealthInformation.AutoSequenceNumber,
                 };
-                Partition.ReportPartitionHealth(hi);
+                this.Partition.ReportPartitionHealth(hi);
 
-                hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "HealthCheckOperations", _healthCheckOperations.Health);
+                hi = new HealthInformation(this.Context.ServiceName.AbsoluteUri, "HealthCheckOperations", this._healthCheckOperations.Health);
                 hi.TimeToLive = interval;
                 hi.RemoveWhenExpired = false;
                 hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
-                Partition.ReportPartitionHealth(hi);
+                this.Partition.ReportPartitionHealth(hi);
 
-                hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "MetricOperations", _metricsOperations.Health);
+                hi = new HealthInformation(this.Context.ServiceName.AbsoluteUri, "MetricOperations", this._metricsOperations.Health);
                 hi.TimeToLive = interval;
                 hi.RemoveWhenExpired = false;
                 hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
-                Partition.ReportPartitionHealth(hi);
+                this.Partition.ReportPartitionHealth(hi);
 
-                hi = new HealthInformation(Context.ServiceName.AbsoluteUri, "CleanupOperations", _cleanupOperations.Health);
+                hi = new HealthInformation(this.Context.ServiceName.AbsoluteUri, "CleanupOperations", this._cleanupOperations.Health);
                 hi.TimeToLive = interval;
                 hi.RemoveWhenExpired = false;
                 hi.SequenceNumber = HealthInformation.AutoSequenceNumber;
-                Partition.ReportPartitionHealth(hi);
+                this.Partition.ReportPartitionHealth(hi);
             }
-            catch (Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}.");
+            }
         }
 
         /// <summary>
@@ -254,8 +266,8 @@ namespace Microsoft.ServiceFabric.WatchdogService
         private async Task ReportWatchdogMetricsAsync(CancellationToken token)
         {
             // Calculate the metric value.
-            int omc = _metricsOperations?.MetricCount ?? -1;
-            int hcc = _healthCheckOperations?.HealthCheckCount ?? -1;
+            int omc = this._metricsOperations?.MetricCount ?? -1;
+            int hcc = this._healthCheckOperations?.HealthCheckCount ?? -1;
 
             try
             {
@@ -265,13 +277,16 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 metrics.Add(new LoadMetric(HealthCheckCountMetricName, hcc));
 
                 // Report the metrics to Service Fabric.
-                Partition.ReportLoad(metrics);
+                this.Partition.ReportLoad(metrics);
 
                 // Report them to the telemetry provider also.
-                await _telemetry.ReportMetricAsync(ObservedMetricCountMetricName, omc, token);
-                await _telemetry.ReportMetricAsync(HealthCheckCountMetricName, hcc, token);
+                await this._telemetry.ReportMetricAsync(ObservedMetricCountMetricName, omc, token);
+                await this._telemetry.ReportMetricAsync(HealthCheckCountMetricName, hcc, token);
             }
-            catch (Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}.");
+            }
         }
 
         /// <summary>
@@ -288,45 +303,55 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 if (null != health)
                 {
                     // Report the aggregated cluster health.
-                    await _telemetry.ReportHealthAsync(Context.ServiceName.AbsoluteUri,
-                                                       Context.PartitionId.ToString(),
-                                                       Context.ReplicaOrInstanceId.ToString(),
-                                                       "Cluster", "Aggregated Cluster Health",
-                                                       health.AggregatedHealthState,
-                                                       cancellationToken);
+                    await
+                        this._telemetry.ReportHealthAsync(
+                            this.Context.ServiceName.AbsoluteUri,
+                            this.Context.PartitionId.ToString(),
+                            this.Context.ReplicaOrInstanceId.ToString(),
+                            "Cluster",
+                            "Aggregated Cluster Health",
+                            health.AggregatedHealthState,
+                            cancellationToken);
 
                     // Get the state of each of the applications running within the cluster. Report anything that is unhealthy.
-                    foreach (var appHealth in health.ApplicationHealthStates)
+                    foreach (ApplicationHealthState appHealth in health.ApplicationHealthStates)
                     {
                         if (HealthState.Ok != appHealth.AggregatedHealthState)
                         {
-                            await _telemetry.ReportHealthAsync(appHealth.ApplicationName.AbsoluteUri,
-                                                               Context.ServiceName.AbsoluteUri,
-                                                               Context.PartitionId.ToString(),
-                                                               Context.ReplicaOrInstanceId.ToString(),
-                                                               Context.NodeContext.NodeName,
-                                                               appHealth.AggregatedHealthState,
-                                                               cancellationToken);
+                            await
+                                this._telemetry.ReportHealthAsync(
+                                    appHealth.ApplicationName.AbsoluteUri,
+                                    this.Context.ServiceName.AbsoluteUri,
+                                    this.Context.PartitionId.ToString(),
+                                    this.Context.ReplicaOrInstanceId.ToString(),
+                                    this.Context.NodeContext.NodeName,
+                                    appHealth.AggregatedHealthState,
+                                    cancellationToken);
                         }
                     }
 
                     // Get the state of each of the nodes running within the cluster.
-                    foreach (var nodeHealth in health.NodeHealthStates)
+                    foreach (NodeHealthState nodeHealth in health.NodeHealthStates)
                     {
                         if (HealthState.Ok != nodeHealth.AggregatedHealthState)
                         {
-                            await _telemetry.ReportHealthAsync(Context.NodeContext.NodeName,
-                                                               Context.ServiceName.AbsoluteUri,
-                                                               Context.PartitionId.ToString(),
-                                                               Context.NodeContext.NodeType,
-                                                               Context.NodeContext.IPAddressOrFQDN,
-                                                               nodeHealth.AggregatedHealthState,
-                                                               cancellationToken);
+                            await
+                                this._telemetry.ReportHealthAsync(
+                                    this.Context.NodeContext.NodeName,
+                                    this.Context.ServiceName.AbsoluteUri,
+                                    this.Context.PartitionId.ToString(),
+                                    this.Context.NodeContext.NodeType,
+                                    this.Context.NodeContext.IPAddressOrFQDN,
+                                    nodeHealth.AggregatedHealthState,
+                                    cancellationToken);
                         }
                     }
                 }
             }
-            catch (Exception ex) { ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}."); }
+            catch (Exception ex)
+            {
+                ServiceEventSource.Current.Error($"Exception: {ex.Message} at {ex.StackTrace}.");
+            }
         }
 
         /// <summary>
@@ -336,23 +361,26 @@ namespace Microsoft.ServiceFabric.WatchdogService
         {
             if ("Config" == e.NewPackage.Description.Name)
             {
-                Interlocked.Exchange<ConfigurationSettings>(ref _settings, e.NewPackage.Settings);
+                Interlocked.Exchange<ConfigurationSettings>(ref this._settings, e.NewPackage.Settings);
 
                 // Update the configured values.
-                if (null != _telemetry)
+                if (null != this._telemetry)
                 {
-                    _telemetry.Key = Settings.Sections[WatchdogConfigSectionName].Parameters["AIKey"].Value;
+                    this._telemetry.Key = this.Settings.Sections[WatchdogConfigSectionName].Parameters["AIKey"].Value;
                 }
 
-                HealthReportInterval = GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "WatchdogHealthReportInterval", TimeSpan.FromSeconds(60));
+                this.HealthReportInterval = this.GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "WatchdogHealthReportInterval", TimeSpan.FromSeconds(60));
 
-                _healthCheckOperations.TimerInterval = GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "HealthCheckInterval", TimeSpan.FromMinutes(5));
-                _metricsOperations.TimerInterval = GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "MetricInterval", TimeSpan.FromMinutes(5));
-                _cleanupOperations.Endpoint = GetConfigValueAsString(WatchdogConfigSectionName, "DiagnosticEndpoint");
-                _cleanupOperations.SasToken = GetConfigValueAsString(WatchdogConfigSectionName, "DiagnosticSasToken");
-                _cleanupOperations.TimerInterval = GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "DiagnosticInterval", TimeSpan.FromMinutes(2));
-                _cleanupOperations.TimeToKeep = GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "DiagnosticTimeToKeep", TimeSpan.FromDays(10));
-                _cleanupOperations.TargetCount = GetConfigValueAsInteger(WatchdogConfigSectionName, "DiagnosticTargetCount", 8000);
+                this._healthCheckOperations.TimerInterval = this.GetConfigValueAsTimeSpan(
+                    WatchdogConfigSectionName,
+                    "HealthCheckInterval",
+                    TimeSpan.FromMinutes(5));
+                this._metricsOperations.TimerInterval = this.GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "MetricInterval", TimeSpan.FromMinutes(5));
+                this._cleanupOperations.Endpoint = this.GetConfigValueAsString(WatchdogConfigSectionName, "DiagnosticEndpoint");
+                this._cleanupOperations.SasToken = this.GetConfigValueAsString(WatchdogConfigSectionName, "DiagnosticSasToken");
+                this._cleanupOperations.TimerInterval = this.GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "DiagnosticInterval", TimeSpan.FromMinutes(2));
+                this._cleanupOperations.TimeToKeep = this.GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "DiagnosticTimeToKeep", TimeSpan.FromDays(10));
+                this._cleanupOperations.TargetCount = this.GetConfigValueAsInteger(WatchdogConfigSectionName, "DiagnosticTargetCount", 8000);
             }
         }
 
@@ -365,9 +393,9 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <returns>Configuraiton value or default.</returns>
         private string GetConfigValueAsString(string sectionName, string parameterName, string value = null)
         {
-            if (null != Settings)
+            if (null != this.Settings)
             {
-                ConfigurationSection section = Settings.Sections[sectionName];
+                ConfigurationSection section = this.Settings.Sections[sectionName];
                 if (null != section)
                 {
                     ConfigurationProperty parameter = section.Parameters[parameterName];
@@ -390,15 +418,18 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <returns>Configuraiton value or default.</returns>
         private int GetConfigValueAsInteger(string sectionName, string parameterName, int value = 0)
         {
-            if (null != Settings)
+            if (null != this.Settings)
             {
-                ConfigurationSection section = Settings.Sections[sectionName];
+                ConfigurationSection section = this.Settings.Sections[sectionName];
                 if (null != section)
                 {
                     ConfigurationProperty parameter = section.Parameters[parameterName];
                     if (null != parameter)
                     {
-                        if (int.TryParse(parameter.Value, out int val))
+                        if (int.TryParse(
+                            parameter.Value,
+                            out int
+                        val))
                         {
                             value = val;
                         }
@@ -418,15 +449,18 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <returns>Configuraiton value or default.</returns>
         private TimeSpan GetConfigValueAsTimeSpan(string sectionName, string parameterName, TimeSpan value = default(TimeSpan))
         {
-            if (null != Settings)
+            if (null != this.Settings)
             {
-                ConfigurationSection section = Settings.Sections[sectionName];
+                ConfigurationSection section = this.Settings.Sections[sectionName];
                 if (null != section)
                 {
                     ConfigurationProperty parameter = section.Parameters[parameterName];
                     if (null != parameter)
                     {
-                        if (TimeSpan.TryParse(parameter.Value, out TimeSpan val))
+                        if (TimeSpan.TryParse(
+                            parameter.Value,
+                            out TimeSpan
+                        val))
                         {
                             value = val;
                         }
@@ -460,26 +494,26 @@ namespace Microsoft.ServiceFabric.WatchdogService
             HealthState current = HealthState.Ok;
             if (null == ServiceEventSource.Current)
             {
-                current = CompareHealthState(current, HealthState.Error);
+                current = this.CompareHealthState(current, HealthState.Error);
                 description.AppendLine("ServiceEventSource is null.");
             }
 
-            if (null == _healthCheckOperations)
+            if (null == this._healthCheckOperations)
             {
-                current = CompareHealthState(current, HealthState.Error);
+                current = this.CompareHealthState(current, HealthState.Error);
                 description.AppendLine("HealthCheckOperations is null.");
             }
 
-            if (null == _metricsOperations)
+            if (null == this._metricsOperations)
             {
-                current = CompareHealthState(current, HealthState.Error);
+                current = this.CompareHealthState(current, HealthState.Error);
                 description.AppendLine("MetricOperations is null.");
             }
 
             // Check the number of endpoints listening.
             if (0 == this.Context.CodePackageActivationContext.GetEndpoints().Count)
             {
-                current = CompareHealthState(current, HealthState.Error);
+                current = this.CompareHealthState(current, HealthState.Error);
                 description.AppendLine("Endpoints listening is zero.");
             }
 
@@ -499,12 +533,12 @@ namespace Microsoft.ServiceFabric.WatchdogService
         protected override Task OnOpenAsync(ReplicaOpenMode openMode, CancellationToken cancellationToken)
         {
             // Get the configuration settings and monitor for changes.
-            Context.CodePackageActivationContext.ConfigurationPackageModifiedEvent += CodePackageActivationContext_ConfigurationPackageModifiedEvent;
+            this.Context.CodePackageActivationContext.ConfigurationPackageModifiedEvent += this.CodePackageActivationContext_ConfigurationPackageModifiedEvent;
 
-            var configPackage = this.Context.CodePackageActivationContext.GetConfigurationPackageObject("Config");
+            ConfigurationPackage configPackage = this.Context.CodePackageActivationContext.GetConfigurationPackageObject("Config");
             if (null != configPackage)
             {
-                Interlocked.Exchange(ref _settings, configPackage.Settings);
+                Interlocked.Exchange(ref this._settings, configPackage.Settings);
             }
 
             return base.OnOpenAsync(openMode, cancellationToken);
@@ -518,39 +552,47 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <returns>A Task that represents outstanding operation.</returns>
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
-            ServiceEventSource.Current.ServiceMessage(Context, "RunAsync called");
+            ServiceEventSource.Current.ServiceMessage(this.Context, "RunAsync called");
 
             // Check if settings are null. If they are, throw.
-            if (null == Settings)
+            if (null == this.Settings)
             {
                 throw new ArgumentNullException("Settings are null, check Config/Settings exist.");
             }
-            
+
             // Create the operations classes.
-            _telemetry = new AiTelemetry(GetConfigValueAsString(WatchdogConfigSectionName, "AIKey"));
-            _healthCheckOperations = new HealthCheckOperations(this, _telemetry, GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "HealthCheckInterval", TimeSpan.FromMinutes(5)), cancellationToken);
-            _metricsOperations = new MetricsOperations(this, _telemetry, GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "MetricInterval", TimeSpan.FromMinutes(5)), cancellationToken);
-            _cleanupOperations = new CleanupOperations(_telemetry, TimeSpan.FromMinutes(2), cancellationToken)
+            this._telemetry = new AiTelemetry(this.GetConfigValueAsString(WatchdogConfigSectionName, "AIKey"));
+            this._healthCheckOperations = new HealthCheckOperations(
+                this,
+                this._telemetry,
+                this.GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "HealthCheckInterval", TimeSpan.FromMinutes(5)),
+                cancellationToken);
+            this._metricsOperations = new MetricsOperations(
+                this,
+                this._telemetry,
+                this.GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "MetricInterval", TimeSpan.FromMinutes(5)),
+                cancellationToken);
+            this._cleanupOperations = new CleanupOperations(this._telemetry, TimeSpan.FromMinutes(2), cancellationToken)
             {
-                Endpoint = GetConfigValueAsString(WatchdogConfigSectionName, "DiagnosticEndpoint"),
-                SasToken = GetConfigValueAsString(WatchdogConfigSectionName, "DiagnosticSasToken"),
-                TimeToKeep = GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "DiagnosticTimeToKeep", TimeSpan.FromDays(10)),
-                TimerInterval = GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "DiagnosticInterval", TimeSpan.FromMinutes(2))
+                Endpoint = this.GetConfigValueAsString(WatchdogConfigSectionName, "DiagnosticEndpoint"),
+                SasToken = this.GetConfigValueAsString(WatchdogConfigSectionName, "DiagnosticSasToken"),
+                TimeToKeep = this.GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "DiagnosticTimeToKeep", TimeSpan.FromDays(10)),
+                TimerInterval = this.GetConfigValueAsTimeSpan(WatchdogConfigSectionName, "DiagnosticInterval", TimeSpan.FromMinutes(2))
             };
 
             // Register the watchdog health check.
-            await RegisterHealthCheckAsync(cancellationToken).ConfigureAwait(false);
+            await this.RegisterHealthCheckAsync(cancellationToken).ConfigureAwait(false);
 
             // Loop waiting for cancellation.
-            while(false == cancellationToken.IsCancellationRequested)
+            while (false == cancellationToken.IsCancellationRequested)
             {
                 // Report the health and metrics of the watchdog to Service Fabric.
-                ReportWatchdogHealth();
-                await ReportWatchdogMetricsAsync(cancellationToken);
-                await ReportClusterHealthAsync(cancellationToken);
+                this.ReportWatchdogHealth();
+                await this.ReportWatchdogMetricsAsync(cancellationToken);
+                await this.ReportClusterHealthAsync(cancellationToken);
 
                 // Delay up to the time for the next health report.
-                await Task.Delay(HealthReportInterval, cancellationToken);
+                await Task.Delay(this.HealthReportInterval, cancellationToken);
             }
         }
 
@@ -562,7 +604,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <returns>A Task that represents outstanding operation.</returns>
         protected override Task<bool> OnDataLossAsync(RestoreContext restoreCtx, CancellationToken cancellationToken)
         {
-            ServiceEventSource.Current.Error(nameof(OnDataLossAsync), $"OnDataLossAsync called for partition '{this.Partition.PartitionInfo.Id}'.");
+            ServiceEventSource.Current.Error(nameof(this.OnDataLossAsync), $"OnDataLossAsync called for partition '{this.Partition.PartitionInfo.Id}'.");
             return base.OnDataLossAsync(restoreCtx, cancellationToken);
         }
 

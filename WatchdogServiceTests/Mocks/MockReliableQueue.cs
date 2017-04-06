@@ -1,18 +1,17 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="MockReliableQueue.cs" company="Microsoft Corporation">
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// </copyright>
-//-----------------------------------------------------------------------
-
-using Microsoft.ServiceFabric.Data;
-using Microsoft.ServiceFabric.Data.Collections;
-using System;
-using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// ------------------------------------------------------------
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+//  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+// ------------------------------------------------------------
 
 namespace WatchdogServiceTests.Mocks
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.ServiceFabric.Data;
+    using Microsoft.ServiceFabric.Data.Collections;
+
     public class MockReliableQueue<T> : IReliableQueue<T>
     {
         private ConcurrentQueue<T> queue = new ConcurrentQueue<T>();
@@ -36,7 +35,7 @@ namespace WatchdogServiceTests.Mocks
             T item;
             bool result = this.queue.TryDequeue(out item);
 
-            return Task.FromResult((ConditionalValue<T>)Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
+            return Task.FromResult((ConditionalValue<T>) Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
         }
 
         public Task<ConditionalValue<T>> TryDequeueAsync(ITransaction tx)
@@ -44,7 +43,7 @@ namespace WatchdogServiceTests.Mocks
             T item;
             bool result = this.queue.TryDequeue(out item);
 
-            return Task.FromResult((ConditionalValue<T>)Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
+            return Task.FromResult((ConditionalValue<T>) Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
         }
 
         public Task<ConditionalValue<T>> TryPeekAsync(ITransaction tx, LockMode lockMode, TimeSpan timeout, CancellationToken cancellationToken)
@@ -52,7 +51,7 @@ namespace WatchdogServiceTests.Mocks
             T item;
             bool result = this.queue.TryPeek(out item);
 
-            return Task.FromResult((ConditionalValue<T>)Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
+            return Task.FromResult((ConditionalValue<T>) Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
         }
 
         public Task<ConditionalValue<T>> TryPeekAsync(ITransaction tx, LockMode lockMode)
@@ -60,7 +59,7 @@ namespace WatchdogServiceTests.Mocks
             T item;
             bool result = this.queue.TryPeek(out item);
 
-            return Task.FromResult((ConditionalValue<T>)Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
+            return Task.FromResult((ConditionalValue<T>) Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
         }
 
         public Task<ConditionalValue<T>> TryPeekAsync(ITransaction tx, TimeSpan timeout, CancellationToken cancellationToken)
@@ -68,7 +67,7 @@ namespace WatchdogServiceTests.Mocks
             T item;
             bool result = this.queue.TryPeek(out item);
 
-            return Task.FromResult((ConditionalValue<T>)Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
+            return Task.FromResult((ConditionalValue<T>) Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
         }
 
         public Task<ConditionalValue<T>> TryPeekAsync(ITransaction tx)
@@ -76,7 +75,7 @@ namespace WatchdogServiceTests.Mocks
             T item;
             bool result = this.queue.TryPeek(out item);
 
-            return Task.FromResult((ConditionalValue<T>)Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
+            return Task.FromResult((ConditionalValue<T>) Activator.CreateInstance(typeof(ConditionalValue<T>), result, item));
         }
 
         public Task ClearAsync()
@@ -88,11 +87,6 @@ namespace WatchdogServiceTests.Mocks
             }
 
             return Task.FromResult(true);
-        }
-
-        public Task<long> GetCountAsync()
-        {
-            return Task.FromResult((long)this.queue.Count);
         }
 
         public Task<IAsyncEnumerable<T>> CreateEnumerableAsync(ITransaction tx)
@@ -107,6 +101,9 @@ namespace WatchdogServiceTests.Mocks
 
         public Uri Name { get; set; }
 
+        public Task<long> GetCountAsync()
+        {
+            return Task.FromResult((long) this.queue.Count);
+        }
     }
 }
-
