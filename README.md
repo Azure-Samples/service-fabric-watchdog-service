@@ -5,7 +5,6 @@ author: toddabel
 ---
 
 # Azure Service Fabric watchdog sample
-Azure Service Fabric Watchdog service sample
 Discusses the Azure Service Fabric watchdog service sample, how to use it within your cluster and with your services. This sample uses features of C# 7.0 and requires Visual Studio 2017. The sample also uses the Reverse Proxy, which must be installed on the cluster. On a one box deployment, it is installed by default using port 19081, the code assumes this port.
 
 As mentioned in [Monitor and diagnose Azure Service Fabric applications](https://docs.microsoft.com/azure/service-fabric/service-fabric-diagnostics-overview) a watchdog can be part of the monitoring strategy of your application. With Service Fabric a watchdog is nothing more than an auxiliary service that is watching the primary service. It can observe health and load metrics reports the primary service is emitting or make calls to the primary service and ensure it is receiving correct responses. Watchdogs can watch multiple services and detect trends that are occurring across the services. Because of these tight dependencies the watchdogs must be aware of versioning across the services they are observing. Care must be taken when deploying if a v1 watchdog, won't work with a v2 service or the reverse, a v2 watchdog and v1 service.
@@ -15,13 +14,15 @@ The sample described in this article is watchdog service, not tied to a particul
 * Monitor the health of a REST based service by periodically making requests of the the service
 * Monitor the load metrics exposed by services
 * Report both health and load metrics to a telemetry provider, such as Application Insights
-* Clean up Service Fabric diagnostic logs, keeping only a configurable number of days logs
+* Clean up Service Fabric diagnostic logs, keeping only a configurable number of days' logs
 
 The sample includes a test application that shows how integration with the service can be done.
 
 ## Integration with Application Insights
 
-Application Insights is primarily designed for web site metrics, so there isn't a curated dashboard for a Service Fabric service. This sample uses the existing Application Insights concepts and properties where possible. This sample shows integration with Application Insights, but the code is written to allow another telemetry provider if desired. To configure Application Insights, place the key in AIKey within the PackageRoot\Config\Setttings.xml file. After running the sample for a few minutes, you'll be able to configure your Application Insights dashboard using Search and Metrics explorer. 
+Application Insights is primarily designed for web site metrics, so there isn't a curated dashboard for a Service Fabric service. This sample uses the existing Application Insights concepts and properties where possible. Though this sample shows integration with Application Insights, the code is written to allow use of any other telemetry provider if desired. 
+
+To configure Application Insights, place the Instrumentation Key in "AIKey" within the PackageRoot\Config\Setttings.xml file of the WatchdogService. After running the sample for a few minutes, you'll be able to configure your Application Insights dashboard using Search and Metrics explorer. 
 
 ![](./media/AI-menu.png)
 
@@ -42,7 +43,7 @@ availabilityResults
 
 ### Metrics
 
-Metrics Explorer enables you to create dashboards containing graphs or tables of metric content. An example of the dashbaord generated from the TestStatelessService metrics is
+Metrics Explorer enables you to create dashboards containing graphs or tables of metric content. Here is an example of a dashbaord generated from the TestStatelessService metrics:
 
 ![TestStatelessService Application Insights Metrics Explorer Dashboard](./media/AIMetricExplorer.png).
 
@@ -106,7 +107,7 @@ There are three endpoints exposed by the watchdog *HealthCheckController*, each 
 
 ## Monitoring metrics exposed by services
 
-Service instances can also register metrics for the watchdog to monitor and publish to Application Insights. There are two endpoints exposed by the *MetricsController*
+Service instances can also register metrics for the watchdog to monitor and publish to Application Insights. There are two endpoints exposed by the *MetricsController*:
 
 * api/metrics/{application?}/{service?}/{partition:guid?} - GET operation returning the metrics values being monitoried filtered by the provided values. All values are optional.
 * api/metrics/{application}/{service?}/{partition:?} - POST operation accepting an array of string values that are the names of the metrics to monitor for the provided application, service and partition. Service and partition are optional values. As with the health check endpoint, the data can be sent multiple times and will be inserted or updated. The application value is required.
