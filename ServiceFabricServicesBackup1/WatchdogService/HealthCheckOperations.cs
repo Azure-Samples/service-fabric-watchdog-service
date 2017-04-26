@@ -409,17 +409,17 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 sw.Stop();
 
                 // Evaluate the result of the request. If specific codes were provided, check each of the code arrays to find the result code.
-                if ((null != hc.WarningStatusCodes) && (hc.WarningStatusCodes.Contains((int) response.StatusCode)))
+                if ((null != hc.WarningStatusCodes) && (hc.WarningStatusCodes.Contains((int) hc.ResultCode)))
                 {
                     hs = HealthState.Warning;
                     success = false;
                 }
-                else if ((null != hc.ErrorStatusCodes) && (hc.ErrorStatusCodes.Contains((int) response.StatusCode)))
+                else if ((null != hc.ErrorStatusCodes) && (hc.ErrorStatusCodes.Contains((int) hc.ResultCode)))
                 {
                     hs = HealthState.Error;
                     success = false;
                 }
-                else if (false == response.StatusCode.IsSuccessCode())
+                else if (false == hc.ResultCode.IsSuccessCode())
                 {
                     hs = HealthState.Error;
                     success = false;
