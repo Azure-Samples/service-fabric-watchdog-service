@@ -63,7 +63,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
         #region Constants
 
-        internal const int maximumBatchSize = 100;
+        internal const int MaximumBatchSize = 100;
         internal const string PerfcounterTableName = "WADPerformanceCountersTable";
         internal const string SystemEventsTableName = "WADServiceFabricSystemEventTable";
         internal const string ReliableServicesTableName = "WADServiceFabricReliableServiceEventTable";
@@ -289,7 +289,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 foreach (DynamicTableEntity item in queryResult.Results)
                 {
                     // Remember the current partition key, creating a batch with the same key for efficient deletions.
-                    if ((pKey != item.PartitionKey) || (maximumBatchSize == tbo.Count))
+                    if ((pKey != item.PartitionKey) || (MaximumBatchSize == tbo.Count))
                     {
                         // Remove the items, pause and then start the next batch.
                         deleteCount += await this.RemoveItemsAsync(table, tbo).ConfigureAwait(false);
