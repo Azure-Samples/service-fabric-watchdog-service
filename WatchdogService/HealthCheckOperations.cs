@@ -295,7 +295,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                     // Compare the times, if this item is due for execution
                     if (ae.Current.Value.ExecutionTicks < DateTimeOffset.UtcNow.UtcTicks)
                     {
-                        await this.PerformItemHealthCheck(ae.Current.Value);
+                        await this.PerformItemHealthCheckAsync(ae.Current.Value);
                     }
                 }
 
@@ -309,7 +309,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// Performs a HealthCheck for a scheduled item.
         /// </summary>
         /// <param name="item">WatchdogScheduledItem instance.</param>
-        internal async Task PerformItemHealthCheck(WatchdogScheduledItem item)
+        internal async Task PerformItemHealthCheckAsync(WatchdogScheduledItem item)
         {
             // Get the health check dictionaries.
             IReliableDictionary<string, HealthCheck> dict = await this.GetHealthCheckDictionaryAsync();
@@ -690,7 +690,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// <remarks>If application is null or empty, the values passed in service and partition will be ignored.
         /// If service is null or empty, the values passed in partition will be ignored.
         /// </remarks>
-        public async Task<IList<HealthCheck>> GetHealthChecks(string application = null, string service = null, Guid? partition = null)
+        public async Task<IList<HealthCheck>> GetHealthChecksAsync(string application = null, string service = null, Guid? partition = null)
         {
             string filter = string.Empty;
             List<HealthCheck> items = new List<HealthCheck>();
@@ -727,23 +727,23 @@ namespace Microsoft.ServiceFabric.WatchdogService
             }
             catch (FabricObjectClosedException ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecksAsync));
             }
             catch (TimeoutException ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecksAsync));
             }
             catch (FabricTransientException ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecksAsync));
             }
             catch (FabricException ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecksAsync));
             }
             catch (Exception ex)
             {
-                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecks));
+                ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, nameof(this.GetHealthChecksAsync));
             }
 
             // Update the cached count and return the list of HealthCheck items.

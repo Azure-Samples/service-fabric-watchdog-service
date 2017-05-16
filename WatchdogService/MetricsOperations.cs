@@ -275,15 +275,15 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
                     if ((false == string.IsNullOrWhiteSpace(mc.Service)) && (default(Guid) != mc.Partition))
                     {
-                        result = await this.ReportPartitionMetric(mc).ConfigureAwait(false);
+                        result = await this.ReportPartitionMetricAsync(mc).ConfigureAwait(false);
                     }
                     else if ((false == string.IsNullOrWhiteSpace(mc.Service)) && (default(Guid) == mc.Partition))
                     {
-                        result = await this.ReportServiceMetric(mc).ConfigureAwait(false);
+                        result = await this.ReportServiceMetricAsync(mc).ConfigureAwait(false);
                     }
                     else
                     {
-                        result = await this.ReportApplicationMetric(mc).ConfigureAwait(false);
+                        result = await this.ReportApplicationMetricAsync(mc).ConfigureAwait(false);
                     }
                 }
             }
@@ -296,9 +296,9 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         /// <param name="metric"></param>
         /// <returns>Indicator of success.</returns>
-        internal async Task<bool> ReportApplicationMetric(MetricCheck metric)
+        internal async Task<bool> ReportApplicationMetricAsync(MetricCheck metric)
         {
-            ServiceEventSource.Current.ServiceRequestStart(nameof(this.ReportServiceMetric));
+            ServiceEventSource.Current.ServiceRequestStart(nameof(this.ReportServiceMetricAsync));
 
             try
             {
@@ -328,7 +328,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 ServiceEventSource.Current.ServiceMessage(this._service.Context, "FabricClient closed");
             }
 
-            ServiceEventSource.Current.ServiceRequestStop(nameof(this.ReportServiceMetric));
+            ServiceEventSource.Current.ServiceRequestStop(nameof(this.ReportServiceMetricAsync));
             return true;
         }
 
@@ -337,9 +337,9 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         /// <param name="metric"></param>
         /// <returns>Indicator of success.</returns>
-        internal async Task<bool> ReportServiceMetric(MetricCheck metric)
+        internal async Task<bool> ReportServiceMetricAsync(MetricCheck metric)
         {
-            ServiceEventSource.Current.ServiceRequestStart(nameof(this.ReportServiceMetric));
+            ServiceEventSource.Current.ServiceRequestStart(nameof(this.ReportServiceMetricAsync));
 
             try
             {
@@ -387,7 +387,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 ServiceEventSource.Current.ServiceMessage(this._service.Context, "FabricClient closed");
             }
 
-            ServiceEventSource.Current.ServiceRequestStop(nameof(this.ReportServiceMetric));
+            ServiceEventSource.Current.ServiceRequestStop(nameof(this.ReportServiceMetricAsync));
             return true;
         }
 
@@ -396,9 +396,9 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         /// <param name="metric"></param>
         /// <returns>Indicator of success.</returns>
-        internal async Task<bool> ReportPartitionMetric(MetricCheck metric)
+        internal async Task<bool> ReportPartitionMetricAsync(MetricCheck metric)
         {
-            ServiceEventSource.Current.ServiceRequestStart(nameof(this.ReportServiceMetric));
+            ServiceEventSource.Current.ServiceRequestStart(nameof(this.ReportServiceMetricAsync));
 
             try
             {
@@ -423,7 +423,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 ServiceEventSource.Current.ServiceMessage(this._service.Context, "FabricClient closed");
             }
 
-            ServiceEventSource.Current.ServiceRequestStop(nameof(this.ReportServiceMetric));
+            ServiceEventSource.Current.ServiceRequestStop(nameof(this.ReportServiceMetricAsync));
             return true;
         }
 

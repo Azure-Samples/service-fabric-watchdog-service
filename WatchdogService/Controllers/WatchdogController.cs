@@ -59,7 +59,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
             }
 
             // Check that there are items being monitored.
-            IList<HealthCheck> items = await this._service.HealthCheckOperations.GetHealthChecks();
+            IList<HealthCheck> items = await this._service.HealthCheckOperations.GetHealthChecksAsync();
             if (0 == items.Count)
             {
                 ServiceEventSource.Current.Warning(nameof(this.GetWatchdogHealth), "No HealthCheck have been registered with the watchdog.");

@@ -47,7 +47,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 {
                     try
                     {
-                        await this.CleanupDiagnosticTables();
+                        await this.CleanupDiagnosticTablesAsync();
                     }
                     catch (Exception ex)
                     {
@@ -218,7 +218,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// Inspects the Service Fabric diagnostic tables and removes old items when found.
         /// </summary>
         /// <returns></returns>
-        internal async Task CleanupDiagnosticTables()
+        internal async Task CleanupDiagnosticTablesAsync()
         {
             if ((string.IsNullOrWhiteSpace(this._endpoint)) || (string.IsNullOrWhiteSpace(this._sasToken)))
             {
