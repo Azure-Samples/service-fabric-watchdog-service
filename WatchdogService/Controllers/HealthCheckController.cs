@@ -46,7 +46,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
             }
 
             // Check that there are items being monitored.
-            IList<HealthCheck> items = await this._operations.GetHealthChecks();
+            IList<HealthCheck> items = await this._operations.GetHealthChecksAsync();
             if (0 == items.Count)
             {
                 return this.Request.CreateResponse(HttpStatusCode.NoContent);
@@ -69,7 +69,7 @@ namespace Microsoft.ServiceFabric.WatchdogService.Controllers
                 ServiceEventSource.Current.ServiceRequestStart(nameof(this.GetHealthCheck));
 
                 // Get the list of health check items.
-                IList<HealthCheck> items = await this._operations.GetHealthChecks(application, service, partition);
+                IList<HealthCheck> items = await this._operations.GetHealthChecksAsync(application, service, partition);
                 ServiceEventSource.Current.ServiceRequestStop(nameof(this.GetHealthCheck));
 
                 return this.Request.CreateResponse(HttpStatusCode.OK, items);
