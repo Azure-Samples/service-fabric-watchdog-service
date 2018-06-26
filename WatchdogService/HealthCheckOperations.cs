@@ -700,15 +700,15 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
             if ((false == string.IsNullOrWhiteSpace(application)) && (false == string.IsNullOrWhiteSpace(service)) && (partition.HasValue))
             {
-                filter = $"fabric:/{application}/{service}/{partition}";
+                filter = $"/{application}/{service}/{partition}";
             }
             else if ((false == string.IsNullOrWhiteSpace(application)) && (false == string.IsNullOrWhiteSpace(service)))
             {
-                filter = $"fabric:/{application}/{service}";
+                filter = $"/{application}/{service}";
             }
             else if (false == string.IsNullOrWhiteSpace(application))
             {
-                filter = $"fabric:/{application}";
+                filter = $"/{application}";
             }
 
             try
