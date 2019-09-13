@@ -1,7 +1,12 @@
 ---
-services: service-fabric
-platforms: dotnet
-author: toddabel
+page_type: sample
+languages:
+- csharp
+- powershell
+products:
+- azure
+description: "Discusses the Azure Service Fabric watchdog service sample, how to use it within your cluster and with your services."
+urlFragment: service-fabric-watchdog-service
 ---
 
 # Azure Service Fabric watchdog sample
