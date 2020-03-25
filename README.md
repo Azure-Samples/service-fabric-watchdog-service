@@ -5,6 +5,7 @@ languages:
 - powershell
 products:
 - azure
+- azure-service-fabric
 description: "Discusses the Azure Service Fabric watchdog service sample, how to use it within your cluster and with your services."
 urlFragment: service-fabric-watchdog-service
 ---
