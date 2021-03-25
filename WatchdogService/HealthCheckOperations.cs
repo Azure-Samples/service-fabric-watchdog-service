@@ -288,7 +288,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
             using (ITransaction eTx = this._service.StateManager.CreateTransaction())
             {
                 // Create the AsyncEnumerator.
-                IAsyncEnumerator<KeyValuePair<long, WatchdogScheduledItem>> ae =
+                Data.IAsyncEnumerator<KeyValuePair<long, WatchdogScheduledItem>> ae =
                     (await scheduleDict.CreateEnumerableAsync(eTx, EnumerationMode.Ordered)).GetAsyncEnumerator();
                 while (await ae.MoveNextAsync(this._token))
                 {
@@ -716,9 +716,9 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 using (ITransaction tx = this._service.StateManager.CreateTransaction())
                 {
                     // Query the dictionary for an order list filtered by however much the user specified.
-                    IAsyncEnumerable<KeyValuePair<string, HealthCheck>> list =
+                    Data.IAsyncEnumerable<KeyValuePair<string, HealthCheck>> list =
                         await hcDict.CreateEnumerableAsync(tx, (s) => { return s.StartsWith(filter); }, EnumerationMode.Ordered).ConfigureAwait(false);
-                    IAsyncEnumerator<KeyValuePair<string, HealthCheck>> asyncEnumerator = list.GetAsyncEnumerator();
+                    Data.IAsyncEnumerator<KeyValuePair<string, HealthCheck>> asyncEnumerator = list.GetAsyncEnumerator();
                     while (await asyncEnumerator.MoveNextAsync(this._token).ConfigureAwait(false))
                     {
                         items.Add(asyncEnumerator.Current.Value);
