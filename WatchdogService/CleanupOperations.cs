@@ -3,21 +3,20 @@
 //  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
 // ------------------------------------------------------------
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Fabric.Health;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+using Azure;
+using Azure.Data.Tables;
+using Azure.Data.Tables.Models;
+using Microsoft.ServiceFabric.WatchdogService.Interfaces;
+
 namespace Microsoft.ServiceFabric.WatchdogService
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Fabric.Health;
-    using System.Net;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.ServiceFabric.WatchdogService.Interfaces;
-    using Microsoft.WindowsAzure.Storage;
-    using Microsoft.WindowsAzure.Storage.Auth;
-    using Microsoft.WindowsAzure.Storage.RetryPolicies;
-    using Microsoft.WindowsAzure.Storage.Table;
-
     /// <summary>
     /// Watchdog monitoring clean up operations.
     /// </summary>
@@ -230,22 +229,24 @@ namespace Microsoft.ServiceFabric.WatchdogService
             {
                 // Create the storage credentials and connect to the storage account.
                 // The SAS token must be a Table service SAS URL with permissions to read, delete and list table entries. HTTPS must be used.
-                StorageCredentials sc = new StorageCredentials(this._sasToken);
-                CloudTableClient client = new CloudTableClient(new StorageUri(new Uri(this._endpoint)), sc);
+                AzureSasCredential sc = new AzureSasCredential(this._sasToken);
+                TableServiceClient client = new TableServiceClient(new Uri(this._endpoint), sc);
 
                 // Inspect each table for items to be removed.
                 foreach (string tableName in this._tablesToInspect)
                 {
-                    CloudTable table = client.GetTableReference(tableName);
-                    if (true == await table.ExistsAsync(this._token))
-                    {
-                        await this.EnumerateTableItemsAsync(table);
+                    await foreach (var table in client.GetTablesAsync()) {
+                        if (table.TableName == tableName)
+                        {
+                            var tableClient = client.GetTableClient(table.TableName);
+                            await this.EnumerateTableItemsAsync(table, client);
+                        }
                     }
                 }
 
                 this._healthState = HealthState.Ok;
             }
-            catch (StorageException ex)
+            catch (RequestFailedException ex)
             {
                 this._healthState = HealthState.Error;
                 ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, ex.StackTrace);
@@ -261,7 +262,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         /// <param name="table">CloudTable instance.</param>
         /// <returns>Number of items removed.</returns>
-        internal async Task<int> EnumerateTableItemsAsync(CloudTable table)
+        internal async Task<int> EnumerateTableItemsAsync(TableItem table, TableServiceClient client)
         {
             if (null == table)
             {
@@ -269,141 +270,24 @@ namespace Microsoft.ServiceFabric.WatchdogService
             }
 
             Stopwatch sw = Stopwatch.StartNew();
-            ServiceEventSource.Current.Trace("EnumerateTableItemsAsync", table.Name);
+            ServiceEventSource.Current.Trace("EnumerateTableItemsAsync", table.TableName);
+            TableClient tableClient = client.GetTableClient(table.TableName);
 
-            TableBatchOperation tbo = new TableBatchOperation();
-
-            string pKey = null;
             int deleteCount = 0;
-            TableContinuationToken tct = null;
-            TableQuery query =
-                new TableQuery().Where(
-                    TableQuery.GenerateFilterConditionForDate("Timestamp", QueryComparisons.LessThan, DateTimeOffset.Now.Subtract(this._timeToKeep)));
+            var timeStamp = DateTimeOffset.Now.Subtract(this._timeToKeep);
+            // Execute the query.
+            AsyncPageable<TableEntity> queryResult = tableClient.QueryAsync<TableEntity>(filter: $"Timestamp lt '{timeStamp}'");
 
-            do
+            await foreach (TableEntity item in queryResult)
             {
-                // Execute the query.
-                TableQuerySegment<DynamicTableEntity> queryResult = await table.ExecuteQuerySegmentedAsync(query, tct).ConfigureAwait(false);
-                tct = queryResult.ContinuationToken;
+                await tableClient.DeleteEntityAsync(item.PartitionKey,item.RowKey);
+                deleteCount++;
+            }
 
-                foreach (DynamicTableEntity item in queryResult.Results)
-                {
-                    // Remember the current partition key, creating a batch with the same key for efficient deletions.
-                    if ((pKey != item.PartitionKey) || (MaximumBatchSize == tbo.Count))
-                    {
-                        // Remove the items, pause and then start the next batch.
-                        deleteCount += await this.RemoveItemsAsync(table, tbo).ConfigureAwait(false);
-                        await Task.Delay(100);
-                        tbo.Clear();
-                    }
-
-                    pKey = item.PartitionKey;
-                    tbo.Delete(item);
-                }
-
-                // Delete any last items.
-                deleteCount += await this.RemoveItemsAsync(table, tbo).ConfigureAwait(false);
-            } while ((null != tct) && (deleteCount < this._targetCount));
-
-            ServiceEventSource.Current.Trace($"EnumerateTableItemsAsync removed {deleteCount} items from {table.Name} in {sw.ElapsedMilliseconds}ms.");
+            ServiceEventSource.Current.Trace($"EnumerateTableItemsAsync removed {deleteCount} items from {table.TableName} in {sw.ElapsedMilliseconds}ms.");
             return deleteCount;
         }
 
-        /// <summary>
-        /// Removes a batch of items from the table.
-        /// </summary>
-        /// <param name="table">CloudTable instance.</param>
-        /// <param name="tbo">TableBatchOperations instance.</param>
-        internal async Task<int> RemoveItemsAsync(CloudTable table, TableBatchOperation tbo)
-        {
-            if (null == table)
-            {
-                throw new ArgumentNullException("Argument is null", nameof(table));
-            }
-            if (null == tbo)
-            {
-                throw new ArgumentNullException("Argument is null", nameof(tbo));
-            }
-
-            int count = 0;
-            const int maxRetryCount = 5;
-            int retry = maxRetryCount;
-
-            do
-            {
-                // Reset count in case the while was retried.
-                count = 0;
-                try
-                {
-                    TableRequestOptions tro = new TableRequestOptions()
-                    {
-                        MaximumExecutionTime = TimeSpan.FromSeconds(60),
-                        ServerTimeout = TimeSpan.FromSeconds(5),
-                        RetryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(1), 3)
-                    };
-
-                    // Ensure that the batch isn't empty, if it is, return the count.
-                    if (0 == tbo.Count)
-                    {
-                        break;
-                    }
-
-                    // Execute the batch operations.
-                    IList<TableResult> results = results = await table.ExecuteBatchAsync(tbo, tro, null, this._token);
-                    if ((null != results) && (results.Count > 0))
-                    {
-                        int itemCount = 0, failureCount = 0;
-                        foreach (TableResult result in results)
-                        {
-                            itemCount++;
-                            if (false == ((HttpStatusCode) result.HttpStatusCode).IsSuccessCode())
-                            {
-                                failureCount++;
-                            }
-                        }
-
-                        ServiceEventSource.Current.Trace($"Removed {itemCount - failureCount} of {itemCount} items from {table.Name}.");
-                        count = itemCount - failureCount;
-                    }
-                }
-                catch (StorageException ex)
-                {
-                    // ResourceNotFound is returned when one of the batch items isn't found. Need to remove it and try again.
-                    if (ex.RequestInformation?.ExtendedErrorInformation?.ErrorCode.Contains("ResourceNotFound") ?? false)
-                    {
-                        // Get the index of the item within the batch.
-                        if (false == int.TryParse(
-                            ex.RequestInformation?.ExtendedErrorInformation?.ErrorMessage.Split(':')[0],
-                            out int
-                        index))
-                        {
-                            ServiceEventSource.Current.Trace("Unknown index, setting to 0", table.Name);
-                            index = 0;
-                        }
-
-                        if (index < tbo.Count)
-                        {
-                            ServiceEventSource.Current.Trace($"StorageException: ResourceNotFound for item {index}", table.Name);
-                            await Task.Delay(500);
-                            tbo.RemoveAt(index);
-                            retry--;
-                        }
-                        else
-                        {
-                            ServiceEventSource.Current.Trace("Abandoning batch.", table.Name);
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        ServiceEventSource.Current.Exception(ex.Message, ex.GetType().Name, ex.StackTrace);
-                        break;
-                    }
-                }
-            } while ((retry > 0) && (retry < maxRetryCount)); // Only retry if we hit a retryable exception or run out of retries.
-
-            return count;
-        }
 
         #endregion
 
