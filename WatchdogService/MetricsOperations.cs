@@ -531,7 +531,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 // Update the metric count
                 Interlocked.CompareExchange(ref this._metricCount, items.Count, this._metricCount);
             }
-            catch (FabricObjectClosedException)www
+            catch (FabricObjectClosedException)
             {
                 this._service.RefreshFabricClient();
             }

@@ -235,10 +235,10 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 // Inspect each table for items to be removed.
                 foreach (string tableName in this._tablesToInspect)
                 {
-                    await foreach (var table in client.GetTablesAsync()) {
-                        if (table.TableName == tableName)
+                    await foreach (var table in client.QueryAsync()) {
+                        if (table.Name == tableName)
                         {
-                            var tableClient = client.GetTableClient(table.TableName);
+                            var tableClient = client.GetTableClient(table.Name);
                             await this.EnumerateTableItemsAsync(table, client);
                         }
                     }
@@ -270,8 +270,8 @@ namespace Microsoft.ServiceFabric.WatchdogService
             }
 
             Stopwatch sw = Stopwatch.StartNew();
-            ServiceEventSource.Current.Trace("EnumerateTableItemsAsync", table.TableName);
-            TableClient tableClient = client.GetTableClient(table.TableName);
+            ServiceEventSource.Current.Trace("EnumerateTableItemsAsync", table.Name);
+            TableClient tableClient = client.GetTableClient(table.Name);
 
             int deleteCount = 0;
             var timeStamp = DateTimeOffset.Now.Subtract(this._timeToKeep);
@@ -284,7 +284,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 deleteCount++;
             }
 
-            ServiceEventSource.Current.Trace($"EnumerateTableItemsAsync removed {deleteCount} items from {table.TableName} in {sw.ElapsedMilliseconds}ms.");
+            ServiceEventSource.Current.Trace($"EnumerateTableItemsAsync removed {deleteCount} items from {table.Name} in {sw.ElapsedMilliseconds}ms.");
             return deleteCount;
         }
 
