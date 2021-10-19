@@ -267,7 +267,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
             }
 
             Stopwatch sw = Stopwatch.StartNew();
-            ServiceEventSource.Current.Trace("EnumerateTableItemsAsync", table.Name);
+            ServiceEventSource.Current.Trace("EnumerateTableItemsAsync", tableClient.Name);
             TableClient tableClient = client.GetTableClient(table.Name);
 
             int deleteCount = 0;
