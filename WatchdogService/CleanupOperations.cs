@@ -273,7 +273,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
             int deleteCount = 0;
             var timeStamp = DateTimeOffset.Now.Subtract(this._timeToKeep);
             // Execute the query.
-            AsyncPageable<TableEntity> queryResult = tableClient.QueryAsync<TableEntity>(filter: $"Timestamp lt '{timeStamp}'");
+            AsyncPageable<TableEntity> queryResult = tableClient.QueryAsync<TableEntity>(e => e.Timestamp < timeStamp);
 
             await foreach (TableEntity item in queryResult)
             {
