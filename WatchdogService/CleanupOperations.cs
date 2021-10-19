@@ -237,7 +237,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 {
                     await foreach (var table in client.QueryAsync(t => t.Name == tableName)) {
                         var tableClient = client.GetTableClient(table.Name);
-                        await this.EnumerateTableItemsAsync(table, client);
+                        await this.EnumerateTableItemsAsync(table, tableClient);
                     }
                 }
 
@@ -268,7 +268,6 @@ namespace Microsoft.ServiceFabric.WatchdogService
 
             Stopwatch sw = Stopwatch.StartNew();
             ServiceEventSource.Current.Trace("EnumerateTableItemsAsync", tableClient.Name);
-            TableClient tableClient = client.GetTableClient(table.Name);
 
             int deleteCount = 0;
             var timeStamp = DateTimeOffset.Now.Subtract(this._timeToKeep);
