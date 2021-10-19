@@ -235,12 +235,9 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 // Inspect each table for items to be removed.
                 foreach (string tableName in this._tablesToInspect)
                 {
-                    await foreach (var table in client.QueryAsync()) {
-                        if (table.Name == tableName)
-                        {
-                            var tableClient = client.GetTableClient(table.Name);
-                            await this.EnumerateTableItemsAsync(table, client);
-                        }
+                    await foreach (var table in client.QueryAsync(t => t.Name == tableName)) {
+                        var tableClient = client.GetTableClient(table.Name);
+                        await this.EnumerateTableItemsAsync(table, client);
                     }
                 }
 
