@@ -259,7 +259,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
         /// </summary>
         /// <param name="table">CloudTable instance.</param>
         /// <returns>Number of items removed.</returns>
-        internal async Task<int> EnumerateTableItemsAsync(TableClient client)
+        internal async Task<int> EnumerateTableItemsAsync(TableItem table, TableClient tableClient)
         {
             if (null == table)
             {

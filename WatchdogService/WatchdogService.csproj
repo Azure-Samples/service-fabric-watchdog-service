@@ -42,8 +42,8 @@
     <Reference Include="Azure.Core, Version=1.20.0.0, Culture=neutral, PublicKeyToken=92742159e12e44c8, processorArchitecture=MSIL">
       <HintPath>..\packages\Azure.Core.1.20.0\lib\net461\Azure.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Azure.Data.Tables, Version=12.2.0.0, Culture=neutral, PublicKeyToken=92742159e12e44c8, processorArchitecture=MSIL">
-      <HintPath>..\packages\Azure.Data.Tables.12.2.0\lib\netstandard2.0\Azure.Data.Tables.dll</HintPath>
+    <Reference Include="Azure.Data.Tables, Version=12.2.1.0, Culture=neutral, PublicKeyToken=92742159e12e44c8, processorArchitecture=MSIL">
+      <HintPath>..\packages\Azure.Data.Tables.12.2.1\lib\netstandard2.0\Azure.Data.Tables.dll</HintPath>
     </Reference>
     <Reference Include="Bond, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Bond.Core.CSharp.5.2.0\lib\net45\Bond.dll</HintPath>
