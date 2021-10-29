@@ -268,7 +268,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 bool result = false;
 
                 // Create the AsyncEnumerator.
-                IAsyncEnumerator<KeyValuePair<string, MetricCheck>> ae = (await mDict.CreateEnumerableAsync(tx, EnumerationMode.Ordered)).GetAsyncEnumerator();
+                Data.IAsyncEnumerator<KeyValuePair<string, MetricCheck>> ae = (await mDict.CreateEnumerableAsync(tx, EnumerationMode.Ordered)).GetAsyncEnumerator();
                 while (await ae.MoveNextAsync(this._token))
                 {
                     MetricCheck mc = ae.Current.Value;
@@ -506,7 +506,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                 using (ITransaction tx = this._service.StateManager.CreateTransaction())
                 {
                     // Query the dictionary for an order list filtered by however much the user specified.
-                    IAsyncEnumerable<KeyValuePair<string, MetricCheck>> list = null;
+                    Data.IAsyncEnumerable<KeyValuePair<string, MetricCheck>> list = null;
                     if (string.IsNullOrWhiteSpace(filter))
                     {
                         list = await hcDict.CreateEnumerableAsync(tx, EnumerationMode.Ordered).ConfigureAwait(false);
@@ -516,7 +516,7 @@ namespace Microsoft.ServiceFabric.WatchdogService
                         list = await hcDict.CreateEnumerableAsync(tx, (s) => { return s.StartsWith(filter); }, EnumerationMode.Ordered).ConfigureAwait(false);
                     }
 
-                    IAsyncEnumerator<KeyValuePair<string, MetricCheck>> asyncEnumerator = list.GetAsyncEnumerator();
+                    Data.IAsyncEnumerator<KeyValuePair<string, MetricCheck>> asyncEnumerator = list.GetAsyncEnumerator();
                     while (await asyncEnumerator.MoveNextAsync(this._token).ConfigureAwait(false))
                     {
                         if (this._token.IsCancellationRequested)
