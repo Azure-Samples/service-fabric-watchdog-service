@@ -87,7 +87,7 @@ Service Fabric allows for many different communication mechanisms, HTTP based me
     "If-Match" : "match_tag"                                       // optional dictionary of HTTP headers to add to the request.
   },
   "warningStatusCodes" : [ 408, 409 ],                             // optional list of HTTP status codes to consider as a warning.
-  "errorStatusCodes" : [ 401, 412,]                                // optional list of HTTP status codes to consider as an error.
+  "errorStatusCodes" : [ 401, 412 ]                                // optional list of HTTP status codes to consider as an error.
 }
 ```
 
